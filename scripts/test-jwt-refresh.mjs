@@ -41,6 +41,12 @@ function cookieHeader(store, only) {
   return entries.map(([name, value]) => `${name}=${value}`).join("; ")
 }
 
+/** ماسک ایمیل برای لاگ خوانا بدون افشای داده‌ی واقعی */
+function maskEmail(email) {
+  const [local, domain] = email.split("@")
+  return `${local.slice(0, 1)}***@***${domain?.slice(-3) ?? ""}`
+}
+
 async function graphql(store, query, variables, cookieFilter) {
   const csrf = store.csrftoken ?? ""
   const res = await fetch(PROXY, {
@@ -121,7 +127,7 @@ const meAfter = await graphql(
 )
 const user = meAfter.data?.me
 if (user) {
-  console.log(`✓ me بعد از refresh → کاربر: ${user.email}`)
+  console.log(`✓ me بعد از refresh → کاربر: ${maskEmail(user.email)}`)
   console.log("\n🎉 کل جریان JWT refresh سالم است")
 } else {
   console.error("✗ me بعد از refresh هم شکست خورد:", JSON.stringify(meAfter.errors ?? meAfter.data))

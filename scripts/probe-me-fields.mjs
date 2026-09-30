@@ -42,6 +42,14 @@ async function gql(query) {
   return res.json()
 }
 
+/** ماسک مقادیر حساس (ایمیل) برای چاپ امن */
+function maskValue(value) {
+  const s = JSON.stringify(value)
+  return s.includes("@")
+    ? JSON.stringify(s.replace(/([\w.+-]+)@[\w.-]+/g, (_m, local) => `${local.slice(0, 1)}***@***`))
+    : s
+}
+
 const env = readEnvLocal()
 
 // ورود
@@ -64,6 +72,6 @@ const fields = [
 for (const f of fields) {
   const r = await gql(`query { me { ${f} } }`)
   const err = r.errors?.[0]?.message
-  const val = JSON.stringify(r.data?.me ?? null)
+  const val = maskValue(r.data?.me ?? null)
   console.log(err ? `✗ ${f} → ${err.slice(0, 80)}` : `✓ ${f} → ${val.slice(0, 60)}`)
 }
