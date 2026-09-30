@@ -104,9 +104,22 @@ async function fetchFreshCsrfToken(): Promise<string | null> {
  * GET: گرفتن کوکی csrftoken از بک‌اند و ست‌کردن آن روی دامنه‌ی ما.
  * کلاینت قبل از اولین POST یک بار این را صدا می‌زند.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const notConfigured = ensureConfigured()
   if (notConfigured) return notConfigured
+
+  // اگر پارامتر query دارد، یعنی درخواست GraphQL با GET بوده — پشتیبانی نمی‌شود؛
+  // خطای واضح می‌دهیم تا مثل «پاسخ خالی» گمراه‌کننده نباشد
+  if (request.nextUrl.searchParams.has("query")) {
+    return NextResponse.json(
+      {
+        errors: [
+          { message: "درخواست GraphQL با GET پشتیبانی نمی‌شود؛ کلاینت باید preferGetMethod: false داشته باشد" },
+        ],
+      },
+      { status: 405 },
+    )
+  }
 
   const csrf = await fetchFreshCsrfToken()
   if (!csrf) {

@@ -33,17 +33,35 @@ export function graphQLErrorMessage(err: CombinedError | undefined): string {
   return err.graphQLErrors[0]?.message ?? err.networkError?.message ?? "خطای ناشناخته"
 }
 
+export type FetchMeResult =
+  | { user: Me }
+  | { error: string }
+  | null
+
+/** آیا خطا از جنس احراز هویت است؟ (باید با isAuthError در lib/urql هم‌راستا بماند) */
+function isAuthErrorText(message: string): boolean {
+  const m = message.toLowerCase()
+  return (
+    m.includes("does not have access") ||
+    m.includes("unauthorized") ||
+    m.includes("authentication") ||
+    m.includes("not authenticated")
+  )
+}
+
 /**
- * خواندن کاربر جاری — null یعنی باید به /login رفت.
+ * خواندن کاربر جاری با تفکیک خطا:
+ * - { user } → سشن معتبر
+ * - { error } → خطای غیراحراز-هویتی (مثل پرمیشن) — نباید ریدایرکت شود، باید نمایش داده شود
+ * - null → واقعاً لاگین نیست (خطای auth یا کاربر null بعد از تلاش برای refresh)
  *
  * دو مسیر بازیابی سشن:
  * ۱) اگر me خطای احراز هویت بدهد، authExchange (در lib/urql) خودش یک بار
  *    refresh می‌زند و کوئری را تکرار می‌کند.
  * ۲) اگر me بدون خطا null بدهد (بک‌اند به‌جای خطا null برگردانده)، اینجا
  *    دستی یک بار refresh می‌زنیم و دوباره me را می‌خوانیم.
- * فقط اگر بعد از این‌ها هم کاربری نبود، null برمی‌گردانیم.
  */
-export async function fetchMe(): Promise<Me | null> {
+export async function fetchMe(): Promise<FetchMeResult> {
   await ensureCsrfToken()
   const client = makeClient()
 
@@ -55,8 +73,12 @@ export async function fetchMe(): Promise<Me | null> {
     result = await client.query(MeDocument, {}).toPromise()
   }
 
-  if (result.error || !result.data) return null
-  return result.data.me ?? null
+  if (result.error) {
+    // خطای احراز هویت → «لاگین نیست»؛ خطای دیگر → نمایش داده شود
+    return isAuthErrorText(result.error.message) ? null : { error: result.error.message }
+  }
+  if (!result.data) return null
+  return result.data.me ? { user: result.data.me } : null
 }
 
 /** لاگین — نتیجه‌ی ساختاریافته‌ی بک‌اند برمی‌گردد (ok/status/message) */

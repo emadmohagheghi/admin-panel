@@ -29,6 +29,10 @@ export function makeClient() {
     fetchOptions: {
       credentials: "include" as const,
     },
+    // مهم: پیش‌فرض urql v5 کوئری‌ها را با GET می‌فرستد («within-url-limit»)؛
+    // GET پروکسی ما فقط bootstrap کوکی CSRF است و GraphQL را پاس نمی‌دهد،
+    // پس همه‌چیز باید POST برود (مسیر CSRF-aware پروکسی).
+    preferGetMethod: false,
     // در پنل مدیریت داده‌ها باید تازه باشد: از کش بخوان ولی در پس‌زمینه شبکه را هم چک کن
     requestPolicy: "cache-and-network",
     exchanges: [
