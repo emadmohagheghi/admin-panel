@@ -1,13 +1,32 @@
 // پروکسی same-origin برای endpoint GraphQL بک‌اند Django.
 //
+// تضمین‌های امنیتی این هندلر:
+// ۱) URL مقصد فقط از env می‌آید (GRAPHQL_BACKEND_ENDPOINT) — هیچ ورودی
+//    کلاینتی در ساخت URL استفاده نمی‌شود؛ فقط یک مسیر ثابت پروکسی می‌شود.
+// ۲) هدرهای درخواست کلاینت کپی نمی‌شوند؛ فقط هدرهای لازم سمت سرور ساخته می‌شوند:
+//    Content-Type / Accept / X-CSRFToken / Referer / Cookie (فقط کوکی‌های مجاز).
+// ۳) کوکی‌های ارسالی به بک‌اند whitelist دارند (csrftoken + کوکی‌های سشن
+//    تعریف‌شده در SESSION_COOKIE_NAME/SESSION_COOKIE_NAMES) تا کوکی‌های
+//    نامرتبط دامنه‌ی ما به بیرون لو نروند.
+// ۴) Set-Cookieهای بک‌اند قبل از پاس‌دادن به مرورگر، attribute Domainشان حذف
+//    می‌شود تا مرورگر آن‌ها را بپذیرد.
+//
 // چرا Route Handler و نه rewrites؟ چون Django روی HTTPS هدر Referer خارجی را
 // رد می‌کند (تست‌شده: POST با Referer مال localhost → 403 CSRF verification).
-// rewrites نمی‌تواند هدر Referer را تغییر دهد؛ این هندلر Referer و X-CSRFToken
-// را سمت سرور درست می‌کند و کوکی‌های سشن (csrftoken / توکن‌های auth) را بین
-// مرورگر و بک‌اند پاس می‌دهد تا همه‌چیز same-origin بماند.
 import { NextRequest, NextResponse } from "next/server"
 
 const BACKEND_URL = process.env.GRAPHQL_BACKEND_ENDPOINT ?? ""
+
+/** کوکی سشن برای گیت proxy.ts (پیش‌فرض: استاندارد Django) */
+const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? "sessionid"
+/** نام‌های اضافه‌ی کوکی‌های مجاز (مثل توکن refresh) — بعد از لاگین واقعی کامل می‌شود */
+const EXTRA_ALLOWED_COOKIES = (process.env.SESSION_COOKIE_NAMES ?? "")
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean)
+
+/** فقط این کوکی‌ها به بک‌اند می‌روند */
+const ALLOWED_COOKIE_NAMES = new Set(["csrftoken", SESSION_COOKIE_NAME, ...EXTRA_ALLOWED_COOKIES])
 
 /** خواندن مقدار یک کوکی از هدر Cookie */
 function readCookie(cookieHeader: string, name: string): string | null {
@@ -16,6 +35,18 @@ function readCookie(cookieHeader: string, name: string): string | null {
     if (key === name) return decodeURIComponent(rest.join("="))
   }
   return null
+}
+
+/** ساخت هدر Cookie برای بک‌اند فقط از کوکی‌های مجاز (whitelist) */
+function buildBackendCookieHeader(browserCookieHeader: string): string {
+  return browserCookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => {
+      const name = part.split("=")[0]?.trim()
+      return !!name && ALLOWED_COOKIE_NAMES.has(name)
+    })
+    .join("; ")
 }
 
 /** استخراج کوکی‌های Set-Cookie — پوشش تایپ قدیمی‌تر Headers */
@@ -94,16 +125,25 @@ export async function GET() {
 
 /**
  * POST: پاس‌دادن کوئری/میوتیشن به بک‌اند با CSRF کامل.
- * کوکی‌های مرورگر (csrftoken + توکن‌های سشن) به بک‌اند می‌روند و
- * Set-Cookieهای بک‌اند (چرخش توکن) به مرورگر برمی‌گردند.
+ * کوکی‌های مجاز مرورگر به بک‌اند می‌روند و Set-Cookieهای بک‌اند
+ * (سشن / چرخش توکن) به مرورگر برمی‌گردند.
  */
 export async function POST(request: NextRequest) {
   const notConfigured = ensureConfigured()
   if (notConfigured) return notConfigured
 
+  // فقط JSON GraphQL را پروکسی می‌کنیم
+  const contentType = request.headers.get("content-type") ?? ""
+  if (!contentType.includes("application/json")) {
+    return NextResponse.json(
+      { errors: [{ message: "فقط Content-Type: application/json پذیرفته می‌شود" }] },
+      { status: 415 },
+    )
+  }
+
   const browserCookieHeader = request.headers.get("cookie") ?? ""
   let csrf = readCookie(browserCookieHeader, "csrftoken")
-  let backendCookieHeader = browserCookieHeader
+  let backendCookieHeader = buildBackendCookieHeader(browserCookieHeader)
 
   // اگر مرورگر csrftoken ندارد، یکی از بک‌اند می‌گیریم و در همین درخواست استفاده می‌کنیم
   if (!csrf) {
@@ -111,8 +151,8 @@ export async function POST(request: NextRequest) {
     if (!csrf) {
       return NextResponse.json({ errors: [{ message: "csrftoken دریافت نشد" }] }, { status: 502 })
     }
-    backendCookieHeader = browserCookieHeader
-      ? `${browserCookieHeader}; csrftoken=${csrf}`
+    backendCookieHeader = backendCookieHeader
+      ? `${backendCookieHeader}; csrftoken=${csrf}`
       : `csrftoken=${csrf}`
   }
 
