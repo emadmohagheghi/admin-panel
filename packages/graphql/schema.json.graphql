@@ -1,0 +1,716 @@
+type Query {
+  categories(filters: CategoryFilterType, ordering: [CategoryOrderType!]! = [], before: String = null, after: String = null, first: Int = null, last: Int = null): CategoryTypeCursorConnection!
+  rootCategories(filters: CategoryFilterType, ordering: [CategoryOrderType!]! = [], before: String = null, after: String = null, first: Int = null, last: Int = null): CategoryTypeCursorConnection!
+  products(filters: ProductFilter, before: String = null, after: String = null, first: Int = null, last: Int = null): ProductTypeCursorConnection!
+  product(id: ID!): ProductType!
+  productClasses(filters: ProductClassFilter, before: String = null, after: String = null, first: Int = null, last: Int = null): ProductClassTypeCursorConnection!
+  attributes(filters: AttributeFilter, before: String = null, after: String = null, first: Int = null, last: Int = null): AttributeTypeCursorConnection!
+  variants(filters: ProductVariantFilter, before: String = null, after: String = null, first: Int = null, last: Int = null): ProductVariantTypeCursorConnection!
+  permissions: [PermissionClusterType!]!
+  users(filters: UserFilterType, ordering: [UserOrderType!]! = [], before: String = null, after: String = null, first: Int = null, last: Int = null): UserTypeCursorConnection!
+  user(id: ID!): UserType!
+  groups(before: String = null, after: String = null, first: Int = null, last: Int = null): GroupTypeCursorConnection!
+  group(id: ID!): GroupType!
+  me: UserType
+  _fieldPermissions(typeName: String = null, fieldName: String = null): [PermissionMetadataType!]!
+  node(id: ID!): Node!
+  nodes(ids: [ID!]!): [Node!]!
+}
+
+type CategoryTypeCursorConnection {
+  pageInfo: PageInfo!
+  edges: [CategoryTypeCursorEdge!]!
+  totalCount: Int!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type CategoryTypeCursorEdge {
+  cursor: String!
+  node: CategoryType!
+}
+
+type CategoryType implements Node & BaseSeoModelType & ModelWithDescriptionType & ModelWithMetadataType {
+  id: ID!
+  metaTitle: String
+  metaDescription: String
+  metadata: JSON
+  description: String!
+  name: String!
+  slug: String!
+  updatedAt: DateTime
+  isPublic: Boolean!
+  ancestorsArePublic: Boolean!
+  background: DjangoImageType
+  backgroundCaption: String!
+  numchild: Int!
+  products(filters: ProductFilter): [ProductType!]!
+  translations: [CategoryTranslationType!]!
+  children: [CategoryType!]!
+  ancestors: [CategoryType!]!
+}
+
+interface Node {
+  id: ID!
+}
+
+interface BaseSeoModelType {
+  metaTitle: String
+  metaDescription: String
+}
+
+interface ModelWithDescriptionType implements ModelWithMetadataType {
+  metadata: JSON
+  description: String!
+}
+
+interface ModelWithMetadataType {
+  metadata: JSON
+}
+
+scalar JSON
+
+scalar DateTime
+
+type DjangoImageType {
+  name: String!
+  path: String!
+  size: Int!
+  url: String!
+  width: Int!
+  height: Int!
+}
+
+type ProductType implements Node & BaseSeoModelType & ModelWithDescriptionType & ModelWithMetadataType {
+  id: ID!
+  metaTitle: String
+  metaDescription: String
+  metadata: JSON
+  description: String!
+  title: String!
+  slug: String!
+  isPublic: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  categories(filters: CategoryFilterType, ordering: [CategoryOrderType!]! = []): [CategoryType!]!
+  translations(filters: TranslationModelFilter): [ProductTranslateType!]!
+  productType: ProductClassType
+  variants(filters: ProductVariantFilter, before: String = null, after: String = null, first: Int = null, last: Int = null): ProductVariantTypeCursorConnection!
+  medias(before: String = null, after: String = null, first: Int = null, last: Int = null): ProductMediaTypeCursorConnection!
+  attributes(filters: AttributeFilter = null): [ProductAttributeValueType!]!
+}
+
+input CategoryFilterType {
+  id: GlobalIDBaseFilterLookup
+  isPublic: BoolBaseFilterLookup
+  ancestorsArePublic: BoolBaseFilterLookup
+  name: StrFilterLookup
+  slug: StrFilterLookup
+  updatedAt: DatetimeFilterLookup
+  AND: CategoryFilterType
+  OR: CategoryFilterType
+  NOT: CategoryFilterType
+  DISTINCT: Boolean
+}
+
+input GlobalIDBaseFilterLookup {
+  exact: ID
+  isNull: Boolean
+  inList: [ID!]
+}
+
+input BoolBaseFilterLookup {
+  exact: Boolean
+  isNull: Boolean
+  inList: [Boolean!]
+}
+
+input StrFilterLookup {
+  exact: String
+  isNull: Boolean
+  inList: [String!]
+  iExact: String
+  contains: String
+  iContains: String
+  startsWith: String
+  iStartsWith: String
+  endsWith: String
+  iEndsWith: String
+  regex: String
+  iRegex: String
+}
+
+input DatetimeFilterLookup {
+  exact: DateTime
+  isNull: Boolean
+  inList: [DateTime!]
+  gt: DateTime
+  gte: DateTime
+  lt: DateTime
+  lte: DateTime
+  range: DatetimeRangeLookup
+  year: IntComparisonFilterLookup
+  month: IntComparisonFilterLookup
+  day: IntComparisonFilterLookup
+  weekDay: IntComparisonFilterLookup
+  isoWeekDay: IntComparisonFilterLookup
+  week: IntComparisonFilterLookup
+  isoYear: IntComparisonFilterLookup
+  quarter: IntComparisonFilterLookup
+  hour: IntComparisonFilterLookup
+  minute: IntComparisonFilterLookup
+  second: IntComparisonFilterLookup
+  date: DateComparisonFilterLookup
+  time: TimeComparisonFilterLookup
+}
+
+input DatetimeRangeLookup {
+  start: DateTime = null
+  end: DateTime = null
+}
+
+input IntComparisonFilterLookup {
+  exact: Int
+  isNull: Boolean
+  inList: [Int!]
+  gt: Int
+  gte: Int
+  lt: Int
+  lte: Int
+  range: IntRangeLookup
+}
+
+input IntRangeLookup {
+  start: Int = null
+  end: Int = null
+}
+
+input DateComparisonFilterLookup {
+  exact: Date
+  isNull: Boolean
+  inList: [Date!]
+  gt: Date
+  gte: Date
+  lt: Date
+  lte: Date
+  range: DateRangeLookup
+}
+
+scalar Date
+
+input DateRangeLookup {
+  start: Date = null
+  end: Date = null
+}
+
+input TimeComparisonFilterLookup {
+  exact: Time
+  isNull: Boolean
+  inList: [Time!]
+  gt: Time
+  gte: Time
+  lt: Time
+  lte: Time
+  range: TimeRangeLookup
+}
+
+scalar Time
+
+input TimeRangeLookup {
+  start: Time = null
+  end: Time = null
+}
+
+input CategoryOrderType {
+  updatedAt: Ordering
+  hierarchy: Ordering
+}
+
+enum Ordering {
+  ASC
+  ASC_NULLS_FIRST
+  ASC_NULLS_LAST
+  DESC
+  DESC_NULLS_FIRST
+  DESC_NULLS_LAST
+}
+
+type ProductTranslateType implements Node & TranslationModelType & BaseSeoModelType {
+  id: ID!
+  metaTitle: String
+  metaDescription: String
+  languageCode: Language!
+  title: String!
+  description: String!
+  product: ProductType
+}
+
+interface TranslationModelType implements BaseSeoModelType {
+  metaTitle: String
+  metaDescription: String
+  languageCode: Language!
+}
+
+enum Language {
+  EN
+  FA
+  FR
+  DE
+  AR
+}
+
+input TranslationModelFilter {
+  languageCode: Language
+  AND: TranslationModelFilter
+  OR: TranslationModelFilter
+  NOT: TranslationModelFilter
+  DISTINCT: Boolean
+}
+
+type ProductClassType implements Node & ModelWithMetadataType {
+  id: ID!
+  metadata: JSON
+  title: String!
+  slug: String!
+  requireShipping: Boolean!
+  trackStock: Boolean!
+  abstract: Boolean!
+  parents(filters: ProductClassFilter): [ProductClassType!]!
+  children(filters: ProductClassFilter): [ProductClassType!]!
+  products(filters: ProductFilter, before: String = null, after: String = null, first: Int = null, last: Int = null): ProductTypeCursorConnection!
+  attributes(filters: AttributeFilter, before: String = null, after: String = null, first: Int = null, last: Int = null): AttributeTypeCursorConnection!
+  ancestors(filters: ProductClassFilter = null): [ProductClassType!]!
+  descendants(filters: ProductClassFilter = null): [ProductClassType!]!
+  variantAttributes(filters: AttributeFilter = null): [AttributeType!]!
+}
+
+input ProductClassFilter {
+  id: GlobalIDFilterLookup
+  title: StrFilterLookup
+  slug: StrFilterLookup
+  requireShipping: BoolBaseFilterLookup
+  trackStock: BoolBaseFilterLookup
+  abstract: BoolBaseFilterLookup
+  AND: ProductClassFilter
+  OR: ProductClassFilter
+  NOT: ProductClassFilter
+  DISTINCT: Boolean
+}
+
+input GlobalIDFilterLookup {
+  exact: ID
+  isNull: Boolean
+  inList: [ID!]
+  iExact: ID
+  contains: ID
+  iContains: ID
+  startsWith: ID
+  iStartsWith: ID
+  endsWith: ID
+  iEndsWith: ID
+  regex: ID
+  iRegex: ID
+}
+
+type ProductTypeCursorConnection {
+  pageInfo: PageInfo!
+  edges: [ProductTypeCursorEdge!]!
+  totalCount: Int!
+}
+
+type ProductTypeCursorEdge {
+  cursor: String!
+  node: ProductType!
+}
+
+input ProductFilter {
+  id: GlobalIDFilterLookup
+  title: StrFilterLookup
+  slug: StrFilterLookup
+  isPublic: BoolBaseFilterLookup
+  createdAt: DatetimeFilterLookup
+  updatedAt: DatetimeFilterLookup
+  productType: ProductClassFilter
+  AND: ProductFilter
+  OR: ProductFilter
+  NOT: ProductFilter
+  DISTINCT: Boolean
+}
+
+type AttributeTypeCursorConnection {
+  pageInfo: PageInfo!
+  edges: [AttributeTypeCursorEdge!]!
+  totalCount: Int!
+}
+
+type AttributeTypeCursorEdge {
+  cursor: String!
+  node: AttributeType!
+}
+
+type AttributeType implements Node & ModelWithMetadataType {
+  id: ID!
+  metadata: JSON
+  name: String!
+  slug: String!
+  inputType: ProductsAttributeInputTypeEnum!
+  valueRequired: Boolean!
+  variantOnly: Boolean!
+  unit: ProductsAttributeUnitEnum
+  translations(filters: TranslationModelFilter): [AttributeTranslationType!]!
+}
+
+enum ProductsAttributeInputTypeEnum {
+  dropdown
+  multiselect
+  file
+  reference
+  single_reference
+  numeric
+  rich_text
+  plain_text
+  swatch
+  boolean
+  date
+  date_time
+}
+
+enum ProductsAttributeUnitEnum {
+  MM
+  CM
+  DM
+  M
+  KM
+  INCH
+  G
+  LB
+  OZ
+  KG
+  SQ_MM
+  SQ_CM
+  SQ_DM
+  SQ_M
+  SQ_INCH
+}
+
+type AttributeTranslationType implements Node & TranslationModelType & BaseSeoModelType {
+  id: ID!
+  metaTitle: String
+  metaDescription: String
+  languageCode: Language!
+  name: String!
+  attribute: AttributeType
+}
+
+input AttributeFilter {
+  inputType: ProductsAttributeInputTypeEnumFilterLookup
+  productClass: ProductClassFilter
+  variantOnly: BoolBaseFilterLookup
+  valueRequired: BoolBaseFilterLookup
+  AND: AttributeFilter
+  OR: AttributeFilter
+  NOT: AttributeFilter
+  DISTINCT: Boolean
+}
+
+input ProductsAttributeInputTypeEnumFilterLookup {
+  exact: ProductsAttributeInputTypeEnum
+  isNull: Boolean
+  inList: [ProductsAttributeInputTypeEnum!]
+  iExact: ProductsAttributeInputTypeEnum
+  contains: ProductsAttributeInputTypeEnum
+  iContains: ProductsAttributeInputTypeEnum
+  startsWith: ProductsAttributeInputTypeEnum
+  iStartsWith: ProductsAttributeInputTypeEnum
+  endsWith: ProductsAttributeInputTypeEnum
+  iEndsWith: ProductsAttributeInputTypeEnum
+  regex: ProductsAttributeInputTypeEnum
+  iRegex: ProductsAttributeInputTypeEnum
+}
+
+type ProductVariantTypeCursorConnection {
+  pageInfo: PageInfo!
+  edges: [ProductVariantTypeCursorEdge!]!
+  totalCount: Int!
+}
+
+type ProductVariantTypeCursorEdge {
+  cursor: String!
+  node: ProductVariantType!
+}
+
+type ProductVariantType implements Node & SortableModelType & ModelWithMetadataType {
+  id: ID!
+  sortOrder: Int
+  metadata: JSON
+  sku: String
+  name: String!
+  trackInventory: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  product: ProductType
+  translations(filters: TranslationModelFilter): [ProductVariantTranslationType!]!
+  attributes(filters: AttributeFilter = null): [VariantAttributeType!]!
+}
+
+interface SortableModelType {
+  sortOrder: Int
+}
+
+type ProductVariantTranslationType implements Node & TranslationModelType & BaseSeoModelType {
+  id: ID!
+  metaTitle: String
+  metaDescription: String
+  languageCode: Language!
+  name: String!
+  variant: ProductVariantType
+}
+
+type VariantAttributeType {
+  attribute: AttributeType!
+  values: [AttributeValueType!]!
+}
+
+type AttributeValueType implements Node {
+  id: ID!
+  attribute: AttributeType!
+  label: String
+  translations(filters: TranslationModelFilter): [AttributeValueTranslationType!]!
+  value: String
+  richText: JSON
+  plainText: String
+  boolean: Boolean
+  dateTime: DateTime
+  numeric: Float
+  referenceProduct: ProductType
+  referenceVariant: ProductVariantType
+  referenceCategory: CategoryType
+  dataType: AttributeInputType!
+}
+
+type AttributeValueTranslationType implements Node & TranslationModelType & BaseSeoModelType {
+  id: ID!
+  metaTitle: String
+  metaDescription: String
+  languageCode: Language!
+  label: String!
+  value: String
+  richText: JSON
+  plainText: String
+  attributeValue: AttributeValueType
+}
+
+enum AttributeInputType {
+  DROPDOWN
+  MULTISELECT
+  FILE
+  REFERENCE
+  SINGLE_REFERENCE
+  NUMERIC
+  RICH_TEXT
+  PLAIN_TEXT
+  SWATCH
+  BOOLEAN
+  DATE
+  DATE_TIME
+}
+
+input ProductVariantFilter {
+  sku: StrFilterLookup
+  name: StrFilterLookup
+  product: ProductFilter
+  trackInventory: BoolBaseFilterLookup
+  createdAt: DatetimeFilterLookup
+  updatedAt: DatetimeFilterLookup
+  AND: ProductVariantFilter
+  OR: ProductVariantFilter
+  NOT: ProductVariantFilter
+  DISTINCT: Boolean
+}
+
+type ProductMediaTypeCursorConnection {
+  pageInfo: PageInfo!
+  edges: [ProductMediaTypeCursorEdge!]!
+  totalCount: Int!
+}
+
+type ProductMediaTypeCursorEdge {
+  cursor: String!
+  node: ProductMediaType!
+}
+
+type ProductMediaType implements Node & ModelWithMetadataType & SortableModelType {
+  id: ID!
+  metadata: JSON
+  sortOrder: Int
+  product: ProductType
+  image: DjangoImageType
+  caption: String!
+  published: Boolean!
+}
+
+type ProductAttributeValueType implements SortableModelType {
+  sortOrder: Int
+  attribute: AttributeType!
+  value: AttributeValueType!
+}
+
+type CategoryTranslationType implements Node & TranslationModelType & BaseSeoModelType {
+  id: ID!
+  metaTitle: String
+  metaDescription: String
+  languageCode: Language!
+  name: String
+  description: String
+}
+
+type ProductClassTypeCursorConnection {
+  pageInfo: PageInfo!
+  edges: [ProductClassTypeCursorEdge!]!
+  totalCount: Int!
+}
+
+type ProductClassTypeCursorEdge {
+  cursor: String!
+  node: ProductClassType!
+}
+
+type PermissionClusterType {
+  label: String!
+  permissions(filters: PermissionFilterType): [PermissionType!]!
+}
+
+type PermissionType implements Node {
+  id: ID!
+  name: String!
+  codename: String!
+}
+
+input PermissionFilterType {
+  name: StrFilterLookup
+  AND: PermissionFilterType
+  OR: PermissionFilterType
+  NOT: PermissionFilterType
+  DISTINCT: Boolean
+}
+
+type UserTypeCursorConnection {
+  pageInfo: PageInfo!
+  edges: [UserTypeCursorEdge!]!
+  totalCount: Int!
+}
+
+type UserTypeCursorEdge {
+  cursor: String!
+  node: UserType!
+}
+
+type UserType implements Node & ModelWithDescriptionType & ModelWithMetadataType {
+  id: ID!
+  metadata: JSON
+  description: String!
+  email: String!
+  firstName: String!
+  lastName: String!
+  isStaff: Boolean!
+  isActive: Boolean!
+  isConfirmed: Boolean!
+  isSuperuser: Boolean!
+  dateJoined: DateTime!
+  updatedAt: DateTime!
+  lastLogin: DateTime
+  avatar: DjangoImageType
+  languageCode: AccountUserLanguageCodeEnum!
+  groups: [GroupType!]!
+  permissions: [PermissionType!]!
+  groupPermissions: [PermissionType!]!
+  onlineStatus: Boolean!
+}
+
+enum AccountUserLanguageCodeEnum {
+  en
+  fa
+  fr
+  de
+  ar
+}
+
+type GroupType implements Node {
+  id: ID!
+  name: String!
+  permissions(filters: PermissionFilterType): [PermissionType!]!
+  users(filters: UserFilterType, ordering: [UserOrderType!]! = [], before: String = null, after: String = null, first: Int = null, last: Int = null): UserTypeCursorConnection!
+}
+
+input UserFilterType {
+  id: GlobalIDFilterLookup
+  isActive: BoolBaseFilterLookup
+  isConfirmed: BoolBaseFilterLookup
+  isSuperuser: BoolBaseFilterLookup
+  isStaff: BoolBaseFilterLookup
+  AND: UserFilterType
+  OR: UserFilterType
+  NOT: UserFilterType
+  DISTINCT: Boolean
+}
+
+input UserOrderType {
+  id: Ordering
+  lastLogin: Ordering
+  updatedAt: Ordering
+  email: Ordering
+}
+
+type GroupTypeCursorConnection {
+  pageInfo: PageInfo!
+  edges: [GroupTypeCursorEdge!]!
+  totalCount: Int!
+}
+
+type GroupTypeCursorEdge {
+  cursor: String!
+  node: GroupType!
+}
+
+type PermissionMetadataType {
+  typeName: String!
+  fieldName: String!
+  permissions: [String!]!
+}
+
+type Mutation {
+  login(email: String!, password: String!): AuthDetail!
+  logout: AuthDetail!
+  refresh: AuthDetail!
+}
+
+type AuthDetail {
+  ok: Boolean!
+  status: AuthStatus!
+  message: String!
+  expireDate: DateTime
+}
+
+enum AuthStatus {
+  SUCCESS
+  REFRESH_TOKEN_MISSING
+  REFRESH_TOKEN_EXPIRED
+  USER_NOT_FOUND
+  ACCOUNT_DISABLED
+  INVALID_TOKEN_TYPE
+  INVALID_REFRESH_TOKEN
+  INVALID_CREDENTIALS
+}
+
+type Subscription {
+  userOnlineCounts: UserOnlineCount!
+}
+
+type UserOnlineCount {
+  onlines: Int!
+}

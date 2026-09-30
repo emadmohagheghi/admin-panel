@@ -1,0 +1,46 @@
+# ---------- احراز هویت ----------
+# لاگین: سرور کوکی سشن ست می‌کند؛ نتیجه ساختاریافته است (ok/status/message)
+mutation Login($email: String!, $password: String!) {
+  login(email: $email, password: $password) {
+    ok
+    status
+    message
+    expireDate
+  }
+}
+
+mutation Logout {
+  logout {
+    ok
+    status
+    message
+    expireDate
+  }
+}
+
+# تمدید سشن با refresh token (کوکی‌شده در مرورگر)
+mutation RefreshSession {
+  refresh {
+    ok
+    status
+    message
+    expireDate
+  }
+}
+
+# کاربر جاری — برای تشخیص سشن معتبر در محافظت از روت‌ها
+query Me {
+  me {
+    id
+    email
+    firstName
+    lastName
+    isStaff
+    isSuperuser
+    isActive
+    languageCode
+    avatar {
+      url
+    }
+  }
+}

@@ -1,0 +1,62 @@
+# ---------- دسته‌بندی‌ها ----------
+# نکته: CategoryType فیلد parent ندارد؛ والد از طریق ancestors (آخرین عضو) قابل استخراج است.
+# همچنین کوئری تکی category(id) در اسکیما نیست — جزئیات با node(id) گرفته می‌شود.
+
+# لیست دسته‌بندی‌ها با فیلتر، مرتب‌سازی و صفحه‌بندی cursor
+query CategoriesList(
+  $first: Int
+  $after: String
+  $filters: CategoryFilterType
+  $ordering: [CategoryOrderType!]!
+) {
+  categories(first: $first, after: $after, filters: $filters, ordering: $ordering) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        name
+        slug
+        isPublic
+        description
+        updatedAt
+        numchild
+      }
+    }
+  }
+}
+
+# جزئیات دسته‌بندی با درخت اجداد و فرزندان — از طریق node(id)
+query CategoryDetail($id: ID!) {
+  node(id: $id) {
+    __typename
+    ... on CategoryType {
+      id
+      name
+      slug
+      description
+      isPublic
+      metaTitle
+      metaDescription
+      updatedAt
+      ancestors {
+        id
+        name
+        slug
+      }
+      children {
+        id
+        name
+        slug
+        isPublic
+        numchild
+      }
+    }
+  }
+}

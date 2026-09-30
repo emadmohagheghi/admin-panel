@@ -1,0 +1,105 @@
+# ---------- محصولات ----------
+# لیست محصولات با فیلتر و صفحه‌بندی cursor
+query ProductsList($first: Int, $after: String, $filters: ProductFilter) {
+  products(first: $first, after: $after, filters: $filters) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        title
+        slug
+        isPublic
+        createdAt
+        updatedAt
+        productType {
+          id
+          title
+          slug
+        }
+        categories {
+          id
+          name
+          slug
+        }
+      }
+    }
+  }
+}
+
+# جزئیات یک محصول با واریانت‌ها، مدیا و ویژگی‌ها
+query ProductDetail($id: ID!) {
+  product(id: $id) {
+    id
+    title
+    slug
+    description
+    isPublic
+    metadata
+    createdAt
+    updatedAt
+    productType {
+      id
+      title
+      slug
+    }
+    categories {
+      id
+      name
+      slug
+    }
+    variants(first: 50) {
+      totalCount
+      edges {
+        node {
+          id
+          sku
+          name
+          sortOrder
+          trackInventory
+          createdAt
+          updatedAt
+        }
+      }
+    }
+    medias(first: 50) {
+      totalCount
+      edges {
+        node {
+          id
+          caption
+          published
+          sortOrder
+          image {
+            url
+            width
+            height
+          }
+        }
+      }
+    }
+    attributes {
+      sortOrder
+      attribute {
+        id
+        name
+        slug
+      }
+      value {
+        id
+        label
+        dataType
+        value
+        plainText
+        boolean
+        numeric
+      }
+    }
+  }
+}

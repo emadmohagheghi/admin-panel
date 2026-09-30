@@ -13,6 +13,11 @@
     "format": {
       "dependsOn": ["^format"]
     },
+    "codegen": {
+      "dependsOn": ["^codegen"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["src/gql/**"]
+    },
     "typecheck": {
       "dependsOn": ["^typecheck"]
     },
