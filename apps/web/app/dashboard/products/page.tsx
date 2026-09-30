@@ -1,7 +1,7 @@
 "use client"
 
-// صفحه‌ی محصولات — لیست پشت پرمیشن GROUP_MANAGER قفل است (تست‌شده)؛
-// فقط شمارش باز است. پیام شفاف می‌دهیم و شمارش را نشان می‌دهیم.
+// Products page — the list is locked behind GROUP_MANAGER (verified);
+// only the total count is readable. Show a clear notice.
 import { useQuery } from "urql"
 import { Lock } from "lucide-react"
 import { DashboardStatsDocument } from "@workspace/graphql"
@@ -15,25 +15,26 @@ export default function ProductsPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">محصولات</h1>
-        <p className="text-muted-foreground text-sm">مدیریت محصولات فروشگاه</p>
+        <h1 className="text-2xl font-bold tracking-tight">Products</h1>
+        <p className="text-muted-foreground text-sm">Manage store products</p>
       </div>
 
       <Card>
         <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-          <span className="bg-warning/10 text-warning flex size-12 items-center justify-center rounded-full">
+          <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 flex size-12 items-center justify-center rounded-full">
             <Lock className="size-5" aria-hidden />
           </span>
-          <div className="space-y-1.5 max-w-md">
-            <p className="font-medium">دسترسی به فهرست محصولات محدود است</p>
+          <div className="max-w-md space-y-1.5">
+            <p className="font-medium">Product list access is restricted</p>
             <p className="text-muted-foreground text-sm leading-6">
-              اکانت فعلی پرمیشن <span dir="ltr" className="font-mono text-xs">GROUP_MANAGER</span> را
-              ندارد که بک‌اند برای خواندن لیست محصولات می‌خواهد. پس از باز شدن این پرمیشن در
-              بک‌اند، همین صفحه به‌صورت خودکار لیست کامل را نشان می‌دهد.
+              The current account lacks the{" "}
+              <span className="font-mono text-xs">GROUP_MANAGER</span> permission the backend
+              requires to read products. Once it is granted, this page will show the full list
+              automatically.
             </p>
             {typeof count === "number" && (
               <p className="text-muted-foreground text-xs">
-                شمارش کل محصولات: <span className="tabular-nums font-medium">{count.toLocaleString("fa-IR")}</span>
+                Total products: <span className="font-medium tabular-nums">{count.toLocaleString("en-US")}</span>
               </p>
             )}
           </div>

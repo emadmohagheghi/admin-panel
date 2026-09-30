@@ -1,4 +1,4 @@
-// جدول ساده — مطابق الگوی @workspace/ui
+// Table primitives — follow the @workspace/ui component pattern
 import type { ComponentProps } from "react"
 
 import { cn } from "cn"
@@ -51,7 +51,7 @@ function TableHead({ className, ...props }: ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "text-muted-foreground h-10 px-3 text-start align-middle text-xs font-medium whitespace-nowrap",
+        "text-muted-foreground h-10 px-3 text-left align-middle text-xs font-medium whitespace-nowrap",
         className,
       )}
       {...props}

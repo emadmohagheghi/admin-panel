@@ -1,8 +1,9 @@
 "use client"
 
-// Placeholder صفحات بخش‌ها — تا مرحله‌ی CRUD، ناوبری و empty state تمیز دارد.
+// Placeholder for sections under construction — keeps navigation working
+// with a clean empty state.
 import Link from "next/link"
-import { ArrowLeft, Construction } from "lucide-react"
+import { ArrowRight, Construction } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
 
@@ -20,23 +21,19 @@ export function PagePlaceholder({ title, description, backHref }: PagePlaceholde
         <p className="text-muted-foreground text-sm">{description}</p>
       </div>
 
-      <div className="bg-card border-border/60 flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed px-6 py-20 text-center">
+      <div className="border-border/60 bg-card flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed px-6 py-20 text-center">
         <span className="bg-muted text-muted-foreground flex size-12 items-center justify-center rounded-full">
           <Construction className="size-5" aria-hidden />
         </span>
         <div className="space-y-1">
-          <p className="font-medium">در حال ساخت</p>
+          <p className="font-medium">Under construction</p>
           <p className="text-muted-foreground max-w-sm text-sm leading-6">
-            این بخش در مرحله‌ی بعد (لیست‌های کامل با جدول و فیلتر) اضافه می‌شود.
+            This section will arrive with the next milestone (full tables with filters).
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          render={<Link href={backHref} />}
-        >
-          <ArrowLeft aria-hidden data-icon="inline-start" />
-          بازگشت به نمای کلی
+        <Button variant="outline" size="sm" render={<Link href={backHref} />}>
+          <ArrowRight aria-hidden data-icon="inline-start" />
+          Back to overview
         </Button>
       </div>
     </div>

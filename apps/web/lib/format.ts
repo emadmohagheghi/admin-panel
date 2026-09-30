@@ -1,10 +1,10 @@
-// هلپرهای نمایش مقادیر در جدول‌ها
-const dateTimeFormat = new Intl.DateTimeFormat("fa-IR", {
+// Display helpers for table values (en-US locale, project default)
+const dateTimeFormat = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
 })
 
-/** تاریخ و ساعت خوانا؛ برای null/خالی «—» */
+/** Readable date-time; "—" for null/empty */
 export function formatDateTime(value?: string | null): string {
   if (!value) return "—"
   try {
@@ -14,7 +14,7 @@ export function formatDateTime(value?: string | null): string {
   }
 }
 
-/** متن یا «—» برای مقادیر اختیاری */
+/** Value or "—" for optional fields */
 export function orDash(value?: string | number | null): string {
   return value == null || value === "" ? "—" : String(value)
 }

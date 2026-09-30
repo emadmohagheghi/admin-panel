@@ -1,6 +1,6 @@
 "use client"
 
-// جدول واریانت‌ها — فیلتر سروری sku/name (StrFilterLookup)، صفحه‌بندی cursor.
+// Variants table — server-side sku filter, cursor pagination.
 import { useMemo, useState } from "react"
 import { useQuery } from "urql"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -24,17 +24,12 @@ export default function VariantsPage() {
     variables: {
       first: PAGE_SIZE,
       after: cursor,
-      // فیلتر سروری: sku/name با iContains (نام‌حساس‌نیست)
-      filters: serverSearch.trim()
-        ? { sku: { iContains: serverSearch.trim() } }
-        : null,
+      // Server-side filter: sku with iContains (case-insensitive)
+      filters: serverSearch.trim() ? { sku: { iContains: serverSearch.trim() } } : null,
     },
   })
 
-  const variants = useMemo(
-    () => (data?.variants?.edges ?? []).map((e) => e.node),
-    [data],
-  )
+  const variants = useMemo(() => (data?.variants?.edges ?? []).map((e) => e.node), [data])
 
   const columns = useMemo<ColumnDef<VariantNode, unknown>[]>(
     () => [
@@ -42,33 +37,33 @@ export default function VariantsPage() {
         accessorKey: "sku",
         header: "SKU",
         cell: (ctx) => (
-          <span dir="ltr" className="font-mono text-xs font-medium">
-            {orDash(ctx.row.original.sku)}
-          </span>
+          <span className="font-mono text-xs font-medium">{orDash(ctx.row.original.sku)}</span>
         ),
       },
       {
         accessorKey: "name",
-        header: "نام",
+        header: "Name",
         cell: (ctx) => <span className="text-sm">{orDash(ctx.row.original.name)}</span>,
       },
       {
         accessorKey: "trackInventory",
-        header: "ردیابی موجودی",
+        header: "Track inventory",
         cell: (ctx) => (
           <Badge variant={ctx.getValue() ? "success" : "secondary"}>
-            {ctx.getValue() ? "فعال" : "خاموش"}
+            {ctx.getValue() ? "On" : "Off"}
           </Badge>
         ),
       },
       {
         accessorKey: "sortOrder",
-        header: "ترتیب",
-        cell: (ctx) => <span className="text-muted-foreground tabular-nums text-xs">{orDash(ctx.row.original.sortOrder)}</span>,
+        header: "Order",
+        cell: (ctx) => (
+          <span className="text-muted-foreground tabular-nums text-xs">{orDash(ctx.row.original.sortOrder)}</span>
+        ),
       },
       {
         accessorKey: "updatedAt",
-        header: "به‌روزرسانی",
+        header: "Updated",
         cell: (ctx) => (
           <span className="text-muted-foreground text-xs">{formatDateTime(ctx.row.original.updatedAt)}</span>
         ),
@@ -80,9 +75,9 @@ export default function VariantsPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">واریانت‌ها</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Variants</h1>
         <p className="text-muted-foreground text-sm">
-          واریانت‌های محصولات — جستجو سروری روی SKU اعمال می‌شود.
+          Product variants — search runs server-side on SKU.
         </p>
       </div>
 
@@ -92,7 +87,7 @@ export default function VariantsPage() {
         loading={fetching && !data}
         error={error ? error.message : null}
         onRetry={() => reexecute({ requestPolicy: "network-only" })}
-        emptyMessage={serverSearch ? "واریانتی مطابق جستجو پیدا نشد" : "هنوز واریانتی ثبت نشده"}
+        emptyMessage={serverSearch ? "No variants match your search" : "No variants yet"}
         pagination={{
           hasNextPage: data?.variants?.pageInfo.hasNextPage ?? false,
           hasPreviousPage: canGoBack || (data?.variants?.pageInfo.hasPreviousPage ?? false),
@@ -108,7 +103,7 @@ export default function VariantsPage() {
           setServerSearch(v)
           reset()
         }}
-        searchPlaceholder="جستجوی SKU…"
+        searchPlaceholder="Search SKU…"
       />
     </div>
   )

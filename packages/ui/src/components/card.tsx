@@ -1,4 +1,4 @@
-// کارت ساده — مطابق الگوی کامپوننت‌های @workspace/ui
+// Card — follows the @workspace/ui component pattern
 import type { ComponentProps } from "react"
 
 import { cn } from "cn"

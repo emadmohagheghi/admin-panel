@@ -1,6 +1,6 @@
 "use client"
 
-// سایدبار داشبورد — دسکتاپ: ثابت (در RTL سمت راست)، موبایل: کشویی با overlay.
+// Dashboard sidebar — desktop: fixed (left in LTR), mobile: slide-in with overlay.
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Store, X } from "lucide-react"
@@ -11,7 +11,7 @@ import { cn } from "@workspace/ui/lib/utils"
 import { NAV_ITEMS } from "@/components/dashboard/nav-items"
 
 type SidebarProps = {
-  /** فقط برای موبایل: باز/بسته بودن کشو */
+  /** Mobile only: whether the drawer is open */
   open: boolean
   onClose: () => void
 }
@@ -25,7 +25,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* overlay موبایل */}
+      {/* Mobile overlay */}
       {open && (
         <div
           aria-hidden
@@ -36,24 +36,22 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          "bg-sidebar text-sidebar-foreground border-sidebar-border fixed inset-y-0 start-0 z-50 flex w-64 flex-col border-e transition-transform duration-200 lg:translate-x-0",
-          open ? "translate-x-0" : "translate-x-full rtl:translate-x-full",
-          // در RTL، سایدبار از راست می‌آید؛ translate-x-full آن را بیرون می‌برد
+          "bg-sidebar text-sidebar-foreground border-sidebar-border fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r transition-transform duration-200 lg:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full",
         )}
-        style={{ transform: open ? undefined : undefined }}
-        aria-label="ناوبری اصلی"
+        aria-label="Main navigation"
       >
         <div className="border-sidebar-border flex h-16 items-center justify-between border-b px-5">
           <Link href="/dashboard" className="flex items-center gap-2.5 font-semibold">
             <span className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 items-center justify-center rounded-lg">
               <Store className="size-4" aria-hidden />
             </span>
-            <span>زارینی | مدیریت</span>
+            <span>Zariny Admin</span>
           </Link>
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="بستن منو"
+            aria-label="Close menu"
             onClick={onClose}
             className="lg:hidden"
           >
@@ -81,7 +79,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 <item.icon className="size-4.5 shrink-0" aria-hidden />
                 <span>{item.label}</span>
                 {active && (
-                  <span aria-hidden className="bg-sidebar-primary ms-auto size-1.5 rounded-full" />
+                  <span aria-hidden className="bg-sidebar-primary ml-auto size-1.5 rounded-full" />
                 )}
               </Link>
             )
@@ -89,7 +87,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-sidebar-border text-sidebar-foreground/50 border-t px-5 py-4 text-xs">
-          پنل مدیریت فروشگاه — نسخه ۰.۱
+          Zariny Store Admin — v0.1
         </div>
       </aside>
     </>

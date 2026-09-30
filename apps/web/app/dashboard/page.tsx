@@ -1,7 +1,7 @@
 "use client"
 
-// صفحه‌ی نمای کلی — کارت‌های آمار با کوئری DashboardStats (urql + TypedDocumentNode).
-// دسته‌بندی‌ها حذف شد چون totalCount آن هم پشت پرمیشن CATALOGUE_MANAGER قفل است.
+// Overview page — stat cards backed by the DashboardStats query.
+// Categories were removed because even its totalCount is permission-locked.
 import { useQuery } from "urql"
 import { Layers, Package, Users } from "lucide-react"
 import { DashboardStatsDocument } from "@workspace/graphql"
@@ -9,9 +9,9 @@ import { DashboardStatsDocument } from "@workspace/graphql"
 import { Card, CardContent } from "@workspace/ui/components/card"
 
 const STATS = [
-  { key: "products", label: "محصولات", icon: Package, href: "/dashboard/products" },
-  { key: "variants", label: "واریانت‌ها", icon: Layers, href: "/dashboard/variants" },
-  { key: "users", label: "کاربران", icon: Users, href: "/dashboard/users" },
+  { key: "products", label: "Products", icon: Package, href: "/dashboard/products" },
+  { key: "variants", label: "Variants", icon: Layers, href: "/dashboard/variants" },
+  { key: "users", label: "Users", icon: Users, href: "/dashboard/users" },
 ] as const
 
 type StatsData =
@@ -22,7 +22,7 @@ type StatsData =
     }
     | undefined
 
-/** خواندن count هر بخش از data کوئری (تابع ساده، نه هوک) */
+/** Read a section's count from the query data (plain function, not a hook) */
 function getStatCount(data: StatsData, key: (typeof STATS)[number]["key"]): number | null {
   if (!data) return null
   const conn = data[key]
@@ -35,13 +35,13 @@ export default function DashboardOverviewPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">نمای کلی</h1>
-        <p className="text-muted-foreground text-sm">خلاصه‌ای از وضعیت فروشگاه</p>
+        <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
+        <p className="text-muted-foreground text-sm">A summary of your store</p>
       </div>
 
       {error && (
         <div role="alert" className="bg-destructive/10 text-destructive rounded-lg px-4 py-3 text-sm">
-          خطا در دریافت آمار: {error.message}
+          Failed to load stats: {error.message}
         </div>
       )}
 

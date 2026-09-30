@@ -1,6 +1,6 @@
 "use client"
 
-// هدر داشبورد — دکمه‌ی منو (موبایل)، تغییر تم، منوی کاربر با خروج.
+// Dashboard header — mobile menu button, theme toggle, user menu with logout.
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronDown, LogOut, Menu } from "lucide-react"
@@ -13,7 +13,7 @@ import { logout, type Me } from "@/lib/auth-session"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 type HeaderProps = {
-  /** فقط برای موبایل: باز کردن سایدبار */
+  /** Mobile only: open the sidebar */
   onOpenSidebar: () => void
   me: Me
 }
@@ -23,7 +23,7 @@ export function Header({ onOpenSidebar, me }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // بستن منو با کلیک بیرون یا Escape
+  // Close the menu on outside click or Escape
   useEffect(() => {
     if (!menuOpen) return
     function onPointerDown(e: PointerEvent) {
@@ -43,12 +43,12 @@ export function Header({ onOpenSidebar, me }: HeaderProps) {
   }, [menuOpen])
 
   const displayName = [me.firstName, me.lastName].filter(Boolean).join(" ") || me.email
-  const initials = (me.firstName[0] ?? me.email[0] ?? "؟").toUpperCase()
+  const initials = (me.firstName[0] ?? me.email[0] ?? "?").toUpperCase()
 
   async function handleLogout() {
     setMenuOpen(false)
     await logout()
-    toast.success("با موفقیت خارج شدید")
+    toast.success("Signed out successfully")
     router.replace("/login")
   }
 
@@ -58,7 +58,7 @@ export function Header({ onOpenSidebar, me }: HeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="باز کردن منو"
+          aria-label="Open menu"
           onClick={onOpenSidebar}
           className="lg:hidden"
         >
@@ -90,14 +90,12 @@ export function Header({ onOpenSidebar, me }: HeaderProps) {
           {menuOpen && (
             <div
               role="menu"
-              aria-label="منوی کاربر"
-              className="bg-popover text-popover-foreground absolute end-0 top-full z-50 mt-2 w-56 rounded-xl border p-1 shadow-lg"
+              aria-label="User menu"
+              className="bg-popover text-popover-foreground absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border p-1 shadow-lg"
             >
               <div className="border-b px-3 py-2.5">
                 <p className="truncate text-sm font-medium">{displayName}</p>
-                <p dir="ltr" className="text-muted-foreground truncate text-xs">
-                  {me.email}
-                </p>
+                <p className="text-muted-foreground truncate text-xs">{me.email}</p>
               </div>
               <button
                 role="menuitem"
@@ -105,7 +103,7 @@ export function Header({ onOpenSidebar, me }: HeaderProps) {
                 className="text-destructive hover:bg-destructive/10 focus-visible:bg-destructive/10 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium outline-none"
               >
                 <LogOut aria-hidden className="size-4" />
-                خروج از حساب
+                Sign out
               </button>
             </div>
           )}

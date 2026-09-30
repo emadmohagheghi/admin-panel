@@ -1,6 +1,6 @@
 "use client"
 
-// آواتار — بر پایه‌ی Base UI با fallback (حروف اول) وقتی تصویر نیست
+// Avatar — Base UI based with fallback (initials) when no image is present
 import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar"
 import { cn } from "cn"
 

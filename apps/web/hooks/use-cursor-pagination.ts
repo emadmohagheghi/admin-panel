@@ -1,15 +1,16 @@
 "use client"
 
-// صفحه‌بندی cursor رو به جلو:
-// - nextCursor از pageInfo.endCursor همان صفحه گرفته و به تاریخچه افزوده می‌شود
-// - «قبلی» یعنی برگرداندن cursor صفحه‌ی قبل از تاریخچه (بدون درخواست backward)
-// رویدادمحور است (فقط از داخل callback صدا زده می‌شود) تا اثری در رندر نداشته باشد.
+// Forward-only cursor pagination:
+// - nextCursor is taken from the page's pageInfo.endCursor and pushed to history
+// - "previous" restores the prior cursor from history (no backward request,
+//   which would break totalCount)
+// Event-driven (call only from callbacks) so it does not affect rendering.
 import { useCallback, useState } from "react"
 
 type CursorState = {
-  /** cursor درخواست جاری (null = صفحه‌ی اول) */
+  /** Cursor of the current request (null = first page) */
   cursor: string | null
-  /** cursorهای صفحات قبلی — برای دکمه‌ی «قبلی» */
+  /** Previous page cursors — powers the "Previous" button */
   history: (string | null)[]
 }
 
@@ -28,7 +29,7 @@ export function useCursorPagination() {
     })
   }, [])
 
-  /** بازگشت به صفحه‌ی اول (مثلاً بعد از تغییر فیلتر) */
+  /** Back to the first page (e.g. after changing a filter) */
   const reset = useCallback(() => {
     setState({ cursor: null, history: [] })
   }, [])

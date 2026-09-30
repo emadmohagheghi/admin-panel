@@ -1,6 +1,6 @@
 "use client"
 
-// صفحه‌ی دسته‌بندی‌ها — لیست پشت پرمیشن CATALOGUE_MANAGER قفل است (تست‌شده).
+// Categories page — the list is locked behind CATALOGUE_MANAGER (verified).
 import { Lock } from "lucide-react"
 
 import { Card, CardContent } from "@workspace/ui/components/card"
@@ -9,22 +9,22 @@ export default function CategoriesPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">دسته‌بندی‌ها</h1>
-        <p className="text-muted-foreground text-sm">مدیریت دسته‌بندی‌های فروشگاه</p>
+        <h1 className="text-2xl font-bold tracking-tight">Categories</h1>
+        <p className="text-muted-foreground text-sm">Manage store categories</p>
       </div>
 
       <Card>
         <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-          <span className="bg-warning/10 text-warning flex size-12 items-center justify-center rounded-full">
+          <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 flex size-12 items-center justify-center rounded-full">
             <Lock className="size-5" aria-hidden />
           </span>
-          <div className="space-y-1.5 max-w-md">
-            <p className="font-medium">دسترسی به فهرست دسته‌بندی‌ها محدود است</p>
+          <div className="max-w-md space-y-1.5">
+            <p className="font-medium">Category list access is restricted</p>
             <p className="text-muted-foreground text-sm leading-6">
-              اکانت فعلی پرمیشن{" "}
-              <span dir="ltr" className="font-mono text-xs">CATALOGUE_MANAGER</span> را
-              ندارد که بک‌اند برای خواندن دسته‌بندی‌ها می‌خواهد. پس از باز شدن پرمیشن در
-              بک‌اند، این صفحه لیست کامل با درخت دسته‌ها را نشان می‌دهد.
+              The current account lacks the{" "}
+              <span className="font-mono text-xs">CATALOGUE_MANAGER</span> permission the backend
+              requires to read categories. Once it is granted, this page will show the full
+              category tree.
             </p>
           </div>
         </CardContent>

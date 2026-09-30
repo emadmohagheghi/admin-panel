@@ -1,4 +1,4 @@
-// نشان (Badge) — مطابق الگوی @workspace/ui
+// Badge — follows the @workspace/ui component pattern
 import type { ComponentProps } from "react"
 
 import { cva, type VariantProps } from "class-variance-authority"

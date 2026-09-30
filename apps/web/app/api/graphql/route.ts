@@ -1,34 +1,35 @@
-// پروکسی same-origin برای endpoint GraphQL بک‌اند Django.
+// Same-origin proxy for the backend's Django GraphQL endpoint.
 //
-// تضمین‌های امنیتی این هندلر:
-// ۱) URL مقصد فقط از env می‌آید (GRAPHQL_BACKEND_ENDPOINT) — هیچ ورودی
-//    کلاینتی در ساخت URL استفاده نمی‌شود؛ فقط یک مسیر ثابت پروکسی می‌شود.
-// ۲) هدرهای درخواست کلاینت کپی نمی‌شوند؛ فقط هدرهای لازم سمت سرور ساخته می‌شوند:
-//    Content-Type / Accept / X-CSRFToken / Referer / Cookie (فقط کوکی‌های مجاز).
-// ۳) کوکی‌های ارسالی به بک‌اند whitelist دارند (csrftoken + کوکی‌های سشن
-//    تعریف‌شده در SESSION_COOKIE_NAME/SESSION_COOKIE_NAMES) تا کوکی‌های
-//    نامرتبط دامنه‌ی ما به بیرون لو نروند.
-// ۴) Set-Cookieهای بک‌اند قبل از پاس‌دادن به مرورگر، attribute Domainشان حذف
-//    می‌شود تا مرورگر آن‌ها را بپذیرد.
+// Security guarantees of this handler:
+// 1) The destination URL comes only from env (GRAPHQL_BACKEND_ENDPOINT) — no
+//    client input is used in URL construction; a single fixed path is proxied.
+// 2) Client request headers are never copied; only the required headers are
+//    built server-side: Content-Type / Accept / X-CSRFToken / Referer / Cookie
+//    (whitelisted cookies only).
+// 3) Cookies forwarded to the backend are whitelisted (csrftoken + session
+//    cookies defined via SESSION_COOKIE_NAME/SESSION_COOKIE_NAMES) so unrelated
+//    domain cookies never leak outward.
+// 4) Backend Set-Cookie headers have their Domain attribute stripped before
+//    being forwarded so the browser accepts them for our own domain.
 //
-// چرا Route Handler و نه rewrites؟ چون Django روی HTTPS هدر Referer خارجی را
-// رد می‌کند (تست‌شده: POST با Referer مال localhost → 403 CSRF verification).
+// Why a Route Handler instead of rewrites? Django rejects foreign Referer
+// headers on HTTPS (verified: POST with a localhost Referer → 403 CSRF check).
 import { NextRequest, NextResponse } from "next/server"
 
 const BACKEND_URL = process.env.GRAPHQL_BACKEND_ENDPOINT ?? ""
 
-/** کوکی سشن برای گیت proxy.ts (پیش‌فرض: استاندارد Django) */
-const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? "sessionid"
-/** نام‌های اضافه‌ی کوکی‌های مجاز (مثل توکن refresh) — بعد از لاگین واقعی کامل می‌شود */
+/** Session cookie name for the proxy.ts gate (Django default) */
+const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? "access"
+/** Extra allowed cookie names (e.g. refresh token) — confirm after real login */
 const EXTRA_ALLOWED_COOKIES = (process.env.SESSION_COOKIE_NAMES ?? "")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean)
 
-/** فقط این کوکی‌ها به بک‌اند می‌روند */
+/** Only these cookies are sent to the backend */
 const ALLOWED_COOKIE_NAMES = new Set(["csrftoken", SESSION_COOKIE_NAME, ...EXTRA_ALLOWED_COOKIES])
 
-/** خواندن مقدار یک کوکی از هدر Cookie */
+/** Read a single cookie value from a Cookie header */
 function readCookie(cookieHeader: string, name: string): string | null {
   for (const part of cookieHeader.split(";")) {
     const [key, ...rest] = part.trim().split("=")
@@ -37,7 +38,7 @@ function readCookie(cookieHeader: string, name: string): string | null {
   return null
 }
 
-/** ساخت هدر Cookie برای بک‌اند فقط از کوکی‌های مجاز (whitelist) */
+/** Build the backend Cookie header only from whitelisted cookies */
 function buildBackendCookieHeader(browserCookieHeader: string): string {
   return browserCookieHeader
     .split(";")
@@ -49,7 +50,7 @@ function buildBackendCookieHeader(browserCookieHeader: string): string {
     .join("; ")
 }
 
-/** استخراج کوکی‌های Set-Cookie — پوشش تایپ قدیمی‌تر Headers */
+/** Extract Set-Cookie headers — covers older Headers typings */
 function getSetCookies(headers: Headers): string[] {
   const h = headers as Headers & { getSetCookie?: () => string[] }
   if (typeof h.getSetCookie === "function") return h.getSetCookie()
@@ -66,9 +67,9 @@ function extractCsrfToken(setCookies: string[]): string | null {
 }
 
 /**
- * حذف attribute Domain از Set-Cookie بک‌اند.
- * کوکی با Domain دامنه‌ی دیگر توسط مرورگر رد می‌شود؛ با حذفش، کوکی
- * host-only روی دامنه‌ی خود اپ ست می‌شود و در درخواست‌های بعدی برمی‌گردد.
+ * Strip the Domain attribute from a backend Set-Cookie.
+ * A cookie scoped to another domain is rejected by the browser; removing the
+ * attribute makes it host-only for our own domain so it is sent back later.
  */
 function sanitizeSetCookie(cookie: string): string {
   return cookie
@@ -80,7 +81,7 @@ function sanitizeSetCookie(cookie: string): string {
 function ensureConfigured(): NextResponse | null {
   if (!BACKEND_URL) {
     return NextResponse.json(
-      { errors: [{ message: "GRAPHQL_BACKEND_ENDPOINT تنظیم نشده است" }] },
+      { errors: [{ message: "GRAPHQL_BACKEND_ENDPOINT is not configured" }] },
       { status: 500 },
     )
   }
@@ -88,8 +89,8 @@ function ensureConfigured(): NextResponse | null {
 }
 
 /**
- * گرفتن csrftoken تازه از بک‌اند (GET صفحه‌ی GraphiQL).
- * برای شروع جلسه‌ی CSRF وقتی مرورگر هنوز کوکی ندارد.
+ * Fetch a fresh csrftoken from the backend (GET the GraphiQL page).
+ * Used to bootstrap the CSRF session when the browser has no cookie yet.
  */
 async function fetchFreshCsrfToken(): Promise<string | null> {
   const res = await fetch(BACKEND_URL, {
@@ -101,20 +102,21 @@ async function fetchFreshCsrfToken(): Promise<string | null> {
 }
 
 /**
- * GET: گرفتن کوکی csrftoken از بک‌اند و ست‌کردن آن روی دامنه‌ی ما.
- * کلاینت قبل از اولین POST یک بار این را صدا می‌زند.
+ * GET: fetch the backend csrftoken and set it on our domain.
+ * The client calls this once before the first POST.
+ * Note: our GraphQL client (preferGetMethod: false) never sends GraphQL over
+ * GET; if a GET-with-query arrives the client is misconfigured — respond with
+ * a clear error instead of a confusing empty body.
  */
 export async function GET(request: NextRequest) {
   const notConfigured = ensureConfigured()
   if (notConfigured) return notConfigured
 
-  // اگر پارامتر query دارد، یعنی درخواست GraphQL با GET بوده — پشتیبانی نمی‌شود؛
-  // خطای واضح می‌دهیم تا مثل «پاسخ خالی» گمراه‌کننده نباشد
   if (request.nextUrl.searchParams.has("query")) {
     return NextResponse.json(
       {
         errors: [
-          { message: "درخواست GraphQL با GET پشتیبانی نمی‌شود؛ کلاینت باید preferGetMethod: false داشته باشد" },
+          { message: "GraphQL over GET is not supported; the client must use preferGetMethod: false" },
         ],
       },
       { status: 405 },
@@ -123,7 +125,7 @@ export async function GET(request: NextRequest) {
 
   const csrf = await fetchFreshCsrfToken()
   if (!csrf) {
-    return NextResponse.json({ errors: [{ message: "csrftoken دریافت نشد" }] }, { status: 502 })
+    return NextResponse.json({ errors: [{ message: "Failed to fetch csrftoken" }] }, { status: 502 })
   }
 
   const res = NextResponse.json({ ok: true })
@@ -137,19 +139,19 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST: پاس‌دادن کوئری/میوتیشن به بک‌اند با CSRF کامل.
- * کوکی‌های مجاز مرورگر به بک‌اند می‌روند و Set-Cookieهای بک‌اند
- * (سشن / چرخش توکن) به مرورگر برمی‌گردند.
+ * POST: forward the query/mutation to the backend with full CSRF handling.
+ * Whitelisted browser cookies travel to the backend and backend Set-Cookies
+ * (session/rotation) come back to the browser.
  */
 export async function POST(request: NextRequest) {
   const notConfigured = ensureConfigured()
   if (notConfigured) return notConfigured
 
-  // فقط JSON GraphQL را پروکسی می‌کنیم
+  // Only JSON GraphQL payloads are proxied
   const contentType = request.headers.get("content-type") ?? ""
   if (!contentType.includes("application/json")) {
     return NextResponse.json(
-      { errors: [{ message: "فقط Content-Type: application/json پذیرفته می‌شود" }] },
+      { errors: [{ message: "Only Content-Type: application/json is accepted" }] },
       { status: 415 },
     )
   }
@@ -158,11 +160,11 @@ export async function POST(request: NextRequest) {
   let csrf = readCookie(browserCookieHeader, "csrftoken")
   let backendCookieHeader = buildBackendCookieHeader(browserCookieHeader)
 
-  // اگر مرورگر csrftoken ندارد، یکی از بک‌اند می‌گیریم و در همین درخواست استفاده می‌کنیم
+  // If the browser has no csrftoken, fetch one and use it in this request
   if (!csrf) {
     csrf = await fetchFreshCsrfToken()
     if (!csrf) {
-      return NextResponse.json({ errors: [{ message: "csrftoken دریافت نشد" }] }, { status: 502 })
+      return NextResponse.json({ errors: [{ message: "Failed to fetch csrftoken" }] }, { status: 502 })
     }
     backendCookieHeader = backendCookieHeader
       ? `${backendCookieHeader}; csrftoken=${csrf}`
@@ -191,8 +193,8 @@ export async function POST(request: NextRequest) {
     },
   })
 
-  // پاس‌دادن کوکی‌های بک‌اند (سشن/refresh/چرخش csrftoken) به مرورگر —
-  // با حذف Domain تا مرورگر آن‌ها را برای دامنه‌ی خود ما بپذیرد
+  // Forward backend cookies (session/refresh/csrftoken rotation) to the browser
+  // with the Domain attribute stripped so the browser accepts them
   for (const cookie of getSetCookies(backendRes.headers)) {
     res.headers.append("set-cookie", sanitizeSetCookie(cookie))
   }

@@ -1,7 +1,7 @@
 "use client"
 
-// لی‌اوت داشبورد — گیت سشن + سایدبار + هدر.
-// state سایدبار موبایل اینجاست چون بین سایدبار و هدر مشترک است.
+// Dashboard layout — session gate + sidebar + header.
+// Mobile sidebar state lives here because it is shared between the two.
 import { useState } from "react"
 
 import { Header } from "@/components/dashboard/header"
@@ -16,11 +16,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {(me) => (
         <div className="min-h-svh">
           <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-          <div className="lg:ps-64">
+          <div className="lg:pl-64">
             <Header onOpenSidebar={() => setSidebarOpen(true)} me={me} />
             <main className="p-4 sm:p-6">{children}</main>
             <footer className="text-muted-foreground px-6 pb-6 text-xs">
-              © ۱۴۰۵ فروشگاه زارینی
+              © 2026 Zariny Store
             </footer>
           </div>
         </div>

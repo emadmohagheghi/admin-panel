@@ -1,7 +1,7 @@
 "use client"
 
-// جدول کاربران — صفحه‌بندی cursor سروری، سورت کلاینت‌ساید روی صفحه‌ی جاری
-// (سرستون‌ها)، جستجوی کلاینت‌ساید روی صفحه‌ی جاری و بج‌های وضعیت.
+// Users table — server-side cursor pagination, client-side sort/search on the
+// current page, status badges.
 import { useMemo, useState } from "react"
 import { useQuery } from "urql"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -19,33 +19,29 @@ const PAGE_SIZE = 20
 
 function UserCell({ user }: { user: UserNode }) {
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ")
-  const initial = (user.firstName[0] ?? user.email[0] ?? "؟").toUpperCase()
+  const initial = (user.firstName[0] ?? user.email[0] ?? "?").toUpperCase()
   return (
     <div className="flex items-center gap-2.5">
       <Avatar className="size-7">
         {user.avatar?.url ? (
-          // eslint-disable-next-line @next/next/no-img-element -- دامنه‌ی تصاویر خارجی ثابت نیست
+          // eslint-disable-next-line @next/next/no-img-element -- image hosts are not fixed
           <img src={user.avatar.url} alt="" className="size-full object-cover" />
         ) : (
           <AvatarFallback className="text-xs">{initial}</AvatarFallback>
         )}
       </Avatar>
-      {user.onlineStatus && (
-        <span className="sr-only">آنلاین</span>
-      )}
+      {user.onlineStatus && <span className="sr-only">Online</span>}
       <span
         aria-hidden
         className={
           user.onlineStatus
-            ? "bg-emerald-500 relative -ms-4 size-2.5 rounded-full ring-2 ring-background"
+            ? "bg-emerald-500 relative -ml-4 size-2.5 rounded-full ring-2 ring-background"
             : "hidden"
         }
       />
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">{name || "—"}</p>
-        <p dir="ltr" className="text-muted-foreground truncate text-xs">
-          {user.email}
-        </p>
+        <p className="text-muted-foreground truncate text-xs">{user.email}</p>
       </div>
     </div>
   )
@@ -65,10 +61,7 @@ export default function UsersPage() {
     },
   })
 
-  const users = useMemo(
-    () => (data?.users?.edges ?? []).map((e) => e.node),
-    [data],
-  )
+  const users = useMemo(() => (data?.users?.edges ?? []).map((e) => e.node), [data])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return users
@@ -85,46 +78,46 @@ export default function UsersPage() {
       {
         accessorFn: (row) => `${row.firstName} ${row.lastName} ${row.email}`,
         id: "user",
-        header: "کاربر",
+        header: "User",
         cell: (ctx) => <UserCell user={ctx.row.original} />,
       },
       {
         accessorKey: "isStaff",
-        header: "نقش",
+        header: "Role",
         cell: (ctx) => (
           <Badge variant={ctx.getValue() ? "default" : "secondary"}>
-            {ctx.getValue() ? "ستاف" : "معمولی"}
+            {ctx.getValue() ? "Staff" : "Member"}
           </Badge>
         ),
       },
       {
         accessorKey: "isActive",
-        header: "وضعیت",
+        header: "Status",
         cell: (ctx) => (
           <Badge variant={ctx.getValue() ? "success" : "destructive"}>
-            {ctx.getValue() ? "فعال" : "غیرفعال"}
+            {ctx.getValue() ? "Active" : "Disabled"}
           </Badge>
         ),
       },
       {
         accessorKey: "isConfirmed",
-        header: "تأیید",
+        header: "Confirmed",
         cell: (ctx) => (
           <Badge variant={ctx.getValue() ? "success" : "warning"}>
-            {ctx.getValue() ? "تأییدشده" : "در انتظار"}
+            {ctx.getValue() ? "Confirmed" : "Pending"}
           </Badge>
         ),
       },
       {
         accessorKey: "lastLogin",
-        header: "آخرین ورود",
+        header: "Last login",
         cell: (ctx) => (
           <span className="text-muted-foreground text-xs">{formatDateTime(ctx.row.original.lastLogin)}</span>
         ),
       },
       {
         accessorKey: "dateJoined",
-        header: "عضویت",
+        header: "Joined",
         cell: (ctx) => (
           <span className="text-muted-foreground text-xs">{formatDateTime(ctx.row.original.dateJoined)}</span>
         ),
@@ -136,9 +129,9 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">کاربران</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Users</h1>
         <p className="text-muted-foreground text-sm">
-          فهرست کاربران فروشگاه — مرتب‌سازی و جستجو روی صفحه‌ی جاری اعمال می‌شود.
+          Store users — sorting and search apply to the current page.
         </p>
       </div>
 
@@ -148,7 +141,7 @@ export default function UsersPage() {
         loading={fetching && !data}
         error={error ? error.message : null}
         onRetry={() => reexecute({ requestPolicy: "network-only" })}
-        emptyMessage={search ? "کاربری مطابق جستجو پیدا نشد" : "هنوز کاربری ثبت نشده"}
+        emptyMessage={search ? "No users match your search" : "No users yet"}
         pagination={{
           hasNextPage: data?.users?.pageInfo.hasNextPage ?? false,
           hasPreviousPage: canGoBack || (data?.users?.pageInfo.hasPreviousPage ?? false),
@@ -161,7 +154,7 @@ export default function UsersPage() {
         totalCount={data?.users?.totalCount ?? null}
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="جستجوی نام یا ایمیل…"
+        searchPlaceholder="Search name or email…"
       />
     </div>
   )

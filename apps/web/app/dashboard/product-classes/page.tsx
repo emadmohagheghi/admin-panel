@@ -1,6 +1,6 @@
 "use client"
 
-// جدول کلاس‌های محصول — فیلتر سروری title (iContains)، صفحه‌بندی cursor.
+// Product classes table — server-side title filter, cursor pagination.
 import { useMemo, useState } from "react"
 import { useQuery } from "urql"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -28,51 +28,46 @@ export default function ProductClassesPage() {
     },
   })
 
-  const classes = useMemo(
-    () => (data?.productClasses?.edges ?? []).map((e) => e.node),
-    [data],
-  )
+  const classes = useMemo(() => (data?.productClasses?.edges ?? []).map((e) => e.node), [data])
 
   const columns = useMemo<ColumnDef<ClassNode, unknown>[]>(
     () => [
       {
         accessorKey: "title",
-        header: "عنوان",
+        header: "Title",
         cell: (ctx) => <span className="text-sm font-medium">{orDash(ctx.row.original.title)}</span>,
       },
       {
         accessorKey: "slug",
-        header: "نامک",
+        header: "Slug",
         cell: (ctx) => (
-          <span dir="ltr" className="text-muted-foreground font-mono text-xs">
-            {orDash(ctx.row.original.slug)}
-          </span>
+          <span className="text-muted-foreground font-mono text-xs">{orDash(ctx.row.original.slug)}</span>
         ),
       },
       {
         accessorKey: "requireShipping",
-        header: "ارسال",
+        header: "Shipping",
         cell: (ctx) => (
           <Badge variant={ctx.getValue() ? "success" : "secondary"}>
-            {ctx.getValue() ? "نیازمند" : "بدون"}
+            {ctx.getValue() ? "Required" : "None"}
           </Badge>
         ),
       },
       {
         accessorKey: "trackStock",
-        header: "موجودی",
+        header: "Stock",
         cell: (ctx) => (
           <Badge variant={ctx.getValue() ? "success" : "secondary"}>
-            {ctx.getValue() ? "ردیابی" : "بدون"}
+            {ctx.getValue() ? "Tracked" : "Off"}
           </Badge>
         ),
       },
       {
         accessorKey: "abstract",
-        header: "انتزاعی",
+        header: "Abstract",
         cell: (ctx) => (
           <Badge variant={ctx.getValue() ? "warning" : "outline"}>
-            {ctx.getValue() ? "بله" : "خیر"}
+            {ctx.getValue() ? "Yes" : "No"}
           </Badge>
         ),
       },
@@ -83,9 +78,9 @@ export default function ProductClassesPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">کلاس‌های محصول</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Product Classes</h1>
         <p className="text-muted-foreground text-sm">
-          انواع محصولات — جستجو سروری روی عنوان اعمال می‌شود.
+          Product types — search runs server-side on title.
         </p>
       </div>
 
@@ -95,7 +90,7 @@ export default function ProductClassesPage() {
         loading={fetching && !data}
         error={error ? error.message : null}
         onRetry={() => reexecute({ requestPolicy: "network-only" })}
-        emptyMessage={serverSearch ? "کلاسی مطابق جستجو پیدا نشد" : "هنوز کلاسی ثبت نشده"}
+        emptyMessage={serverSearch ? "No classes match your search" : "No product classes yet"}
         pagination={{
           hasNextPage: data?.productClasses?.pageInfo.hasNextPage ?? false,
           hasPreviousPage: canGoBack || (data?.productClasses?.pageInfo.hasPreviousPage ?? false),
@@ -111,7 +106,7 @@ export default function ProductClassesPage() {
           setServerSearch(v)
           reset()
         }}
-        searchPlaceholder="جستجوی عنوان…"
+        searchPlaceholder="Search title…"
       />
     </div>
   )

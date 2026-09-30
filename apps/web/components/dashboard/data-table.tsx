@@ -1,7 +1,8 @@
 "use client"
 
-// جدول داده‌ی ژنریک — TanStack Table + سه حالت loading/error/empty + صفحه‌بندی cursor.
-// ترکیب با motion بعداً آسان باشد: ساختار تمیز، بدون استایل inline، همه کلاس Tailwind.
+// Generic data table — TanStack Table + loading/error/empty states + cursor pagination.
+// Keep the structure clean (Tailwind classes only, no inline styles) so motion
+// wrappers can be added later.
 import { useState } from "react"
 import {
   getCoreRowModel,
@@ -26,24 +27,24 @@ import {
 export type DataTableProps<T> = {
   columns: ColumnDef<T, unknown>[]
   data: T[]
-  /** وضعیت بارگذاری اولیه یا پس‌زمینه‌ای */
+  /** Initial or background loading state */
   loading: boolean
   error?: string | null
   onRetry?: () => void
-  /** پیام حالت خالی */
+  /** Empty state message */
   emptyMessage: string
-  /** صفحه‌بندی cursor (اگر داده سروری صفحه‌بندی می‌شود) */
+  /** Cursor pagination (when the server paginates data) */
   pagination?: {
     hasNextPage: boolean
     hasPreviousPage: boolean
     onNext: () => void
     onPrevious: () => void
   }
-  /** شماره‌ی صفحه برای نمایش (اختیاری) */
+  /** Page label to display (optional) */
   pageLabel?: string
-  /** شمارش کل رکوردها (اختیاری؛ اگر باشد کنار جستجو می‌نشیند) */
+  /** Total record count (shown next to the search box) */
   totalCount?: number | null
-  /** جستجوی کلاینت‌ساید (فقط صفحه‌ی جاری) */
+  /** Client-side search (current page only) */
   searchValue?: string
   onSearchChange?: (value: string) => void
   searchPlaceholder?: string
@@ -65,8 +66,8 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([])
 
-  // React Compiler این کامپوننت را memoize نمی‌کند (هشدار react-hooks/incompatible-library)
-  // — بی‌خطر است: جدول state داخلی خودش را مدیریت می‌کند.
+  // React Compiler skips memoizing this component (react-hooks/incompatible-library)
+  // — harmless: the table manages its own internal state.
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
@@ -87,16 +88,16 @@ export function DataTable<T>({
             <input
               type="search"
               role="searchbox"
-              aria-label={searchPlaceholder ?? "جستجو"}
+              aria-label={searchPlaceholder ?? "Search"}
               value={searchValue ?? ""}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={searchPlaceholder ?? "جستجو…"}
+              placeholder={searchPlaceholder ?? "Search…"}
               className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring/50 h-9 w-full max-w-xs rounded-lg border px-3 text-sm shadow-xs transition-colors outline-none focus-visible:border-ring focus-visible:ring-3"
             />
           )}
           {totalCount != null && (
             <span className="text-muted-foreground text-xs tabular-nums">
-              مجموع: {totalCount.toLocaleString("fa-IR")} مورد
+              Total: {totalCount.toLocaleString("en-US")}
             </span>
           )}
         </div>
@@ -114,7 +115,7 @@ export function DataTable<T>({
           {onRetry && (
             <Button variant="outline" size="sm" onClick={onRetry}>
               <RefreshCw aria-hidden data-icon="inline-start" />
-              تلاش مجدد
+              Retry
             </Button>
           )}
         </div>
@@ -157,7 +158,7 @@ export function DataTable<T>({
           </TableHeader>
           <TableBody>
             {loading ? (
-              // اسکلتون بارگذاری
+              // Loading skeleton
               Array.from({ length: 8 }, (_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   {table.getAllLeafColumns().map((col) => (
@@ -197,7 +198,7 @@ export function DataTable<T>({
       {pagination && (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-muted-foreground text-xs">
-            {pageLabel ?? "صفحه‌بندی بر اساس cursor سرور"}
+            {pageLabel ?? "Server-side cursor pagination"}
           </span>
           <div className="flex items-center gap-2">
             <Button
@@ -206,8 +207,8 @@ export function DataTable<T>({
               onClick={pagination.onPrevious}
               disabled={!pagination.hasPreviousPage || loading}
             >
-              <ChevronRight aria-hidden data-icon="inline-start" />
-              قبلی
+              <ChevronLeft aria-hidden data-icon="inline-start" />
+              Previous
             </Button>
             <Button
               variant="outline"
@@ -215,8 +216,8 @@ export function DataTable<T>({
               onClick={pagination.onNext}
               disabled={!pagination.hasNextPage || loading}
             >
-              بعدی
-              <ChevronLeft aria-hidden data-icon="inline-end" />
+              Next
+              <ChevronRight aria-hidden data-icon="inline-end" />
             </Button>
           </div>
         </div>

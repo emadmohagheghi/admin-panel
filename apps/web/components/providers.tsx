@@ -1,6 +1,6 @@
 "use client"
 
-// Provider کلاینت اپ — فعلاً urql؛ بعداً سونر (توست) هم همین‌جا اضافه می‌شود.
+// App providers — urql for now; sonner (toasts) is mounted in the root layout.
 import { useMemo } from "react"
 import type { ReactNode } from "react"
 import { Provider } from "urql"
