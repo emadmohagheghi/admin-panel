@@ -4,6 +4,7 @@
 // طراحی دوستونه: سمت برند + سمت فرم؛ کاملاً RTL و ریسپانسیو.
 import { useState } from "react"
 import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Eye, EyeOff, Loader2, LogIn, Store } from "lucide-react"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -12,7 +13,6 @@ import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { login } from "@/lib/auth-session"
-import { zodResolver } from "@/lib/zod-resolver"
 
 const loginSchema = z.object({
   email: z.email("ایمیل معتبر وارد کنید"),

@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
     "@tanstack/react-table": "^9.2.4",
     "@workspace/graphql": "workspace:*",
     "@workspace/ui": "workspace:*",
