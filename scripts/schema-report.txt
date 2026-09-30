@@ -1,0 +1,524 @@
+
+======================================================================
+QUERY fields (16)
+======================================================================
+  categories(filters: CategoryFilterType, ordering: [CategoryOrderType!]!, before: String, after: String, first: Int, last: Int): CategoryTypeCursorConnection!
+  rootCategories(filters: CategoryFilterType, ordering: [CategoryOrderType!]!, before: String, after: String, first: Int, last: Int): CategoryTypeCursorConnection!
+  products(filters: ProductFilter, before: String, after: String, first: Int, last: Int): ProductTypeCursorConnection!
+  product(id: ID!): ProductType!
+  productClasses(filters: ProductClassFilter, before: String, after: String, first: Int, last: Int): ProductClassTypeCursorConnection!
+  attributes(filters: AttributeFilter, before: String, after: String, first: Int, last: Int): AttributeTypeCursorConnection!
+  variants(filters: ProductVariantFilter, before: String, after: String, first: Int, last: Int): ProductVariantTypeCursorConnection!
+  permissions: [PermissionClusterType!]!
+  users(filters: UserFilterType, ordering: [UserOrderType!]!, before: String, after: String, first: Int, last: Int): UserTypeCursorConnection!
+  user(id: ID!): UserType!
+  groups(before: String, after: String, first: Int, last: Int): GroupTypeCursorConnection!
+  group(id: ID!): GroupType!
+  me: UserType
+  _fieldPermissions(typeName: String, fieldName: String): [PermissionMetadataType!]!
+  node(id: ID!): Node!
+  nodes(ids: [ID!]!): [Node!]!
+
+======================================================================
+MUTATION fields (3)
+======================================================================
+  login(email: String!, password: String!): AuthDetail!
+  logout: AuthDetail!
+  refresh: AuthDetail!
+
+======================================================================
+OBJECT types (40)
+======================================================================
+CategoryTypeCursorConnection
+    pageInfo: PageInfo!
+    edges: [CategoryTypeCursorEdge!]!
+    totalCount: Int!
+PageInfo
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+    endCursor: String
+CategoryTypeCursorEdge
+    cursor: String!
+    node: CategoryType!
+CategoryType
+    id: ID!
+    metaTitle: String
+    metaDescription: String
+    metadata: JSON
+    description: String!
+    name: String!
+    slug: String!
+    updatedAt: DateTime
+    isPublic: Boolean!
+    ancestorsArePublic: Boolean!
+    background: DjangoImageType
+    backgroundCaption: String!
+    numchild: Int!
+    products: [ProductType!]!
+    translations: [CategoryTranslationType!]!
+    children: [CategoryType!]!
+    ancestors: [CategoryType!]!
+DjangoImageType
+    name: String!
+    path: String!
+    size: Int!
+    url: String!
+    width: Int!
+    height: Int!
+ProductType
+    id: ID!
+    metaTitle: String
+    metaDescription: String
+    metadata: JSON
+    description: String!
+    title: String!
+    slug: String!
+    isPublic: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    categories: [CategoryType!]!
+    translations: [ProductTranslateType!]!
+    productType: ProductClassType
+    variants: ProductVariantTypeCursorConnection!
+    medias: ProductMediaTypeCursorConnection!
+    attributes: [ProductAttributeValueType!]!
+ProductTranslateType
+    id: ID!
+    metaTitle: String
+    metaDescription: String
+    languageCode: Language!
+    title: String!
+    description: String!
+    product: ProductType
+ProductClassType
+    id: ID!
+    metadata: JSON
+    title: String!
+    slug: String!
+    requireShipping: Boolean!
+    trackStock: Boolean!
+    abstract: Boolean!
+    parents: [ProductClassType!]!
+    children: [ProductClassType!]!
+    products: ProductTypeCursorConnection!
+    attributes: AttributeTypeCursorConnection!
+    ancestors: [ProductClassType!]!
+    descendants: [ProductClassType!]!
+    variantAttributes: [AttributeType!]!
+ProductTypeCursorConnection
+    pageInfo: PageInfo!
+    edges: [ProductTypeCursorEdge!]!
+    totalCount: Int!
+ProductTypeCursorEdge
+    cursor: String!
+    node: ProductType!
+AttributeTypeCursorConnection
+    pageInfo: PageInfo!
+    edges: [AttributeTypeCursorEdge!]!
+    totalCount: Int!
+AttributeTypeCursorEdge
+    cursor: String!
+    node: AttributeType!
+AttributeType
+    id: ID!
+    metadata: JSON
+    name: String!
+    slug: String!
+    inputType: ProductsAttributeInputTypeEnum!
+    valueRequired: Boolean!
+    variantOnly: Boolean!
+    unit: ProductsAttributeUnitEnum
+    translations: [AttributeTranslationType!]!
+AttributeTranslationType
+    id: ID!
+    metaTitle: String
+    metaDescription: String
+    languageCode: Language!
+    name: String!
+    attribute: AttributeType
+ProductVariantTypeCursorConnection
+    pageInfo: PageInfo!
+    edges: [ProductVariantTypeCursorEdge!]!
+    totalCount: Int!
+ProductVariantTypeCursorEdge
+    cursor: String!
+    node: ProductVariantType!
+ProductVariantType
+    id: ID!
+    sortOrder: Int
+    metadata: JSON
+    sku: String
+    name: String!
+    trackInventory: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    product: ProductType
+    translations: [ProductVariantTranslationType!]!
+    attributes: [VariantAttributeType!]!
+ProductVariantTranslationType
+    id: ID!
+    metaTitle: String
+    metaDescription: String
+    languageCode: Language!
+    name: String!
+    variant: ProductVariantType
+VariantAttributeType
+    attribute: AttributeType!
+    values: [AttributeValueType!]!
+AttributeValueType
+    id: ID!
+    attribute: AttributeType!
+    label: String
+    translations: [AttributeValueTranslationType!]!
+    value: String
+    richText: JSON
+    plainText: String
+    boolean: Boolean
+    dateTime: DateTime
+    numeric: Float
+    referenceProduct: ProductType
+    referenceVariant: ProductVariantType
+    referenceCategory: CategoryType
+    dataType: AttributeInputType!
+AttributeValueTranslationType
+    id: ID!
+    metaTitle: String
+    metaDescription: String
+    languageCode: Language!
+    label: String!
+    value: String
+    richText: JSON
+    plainText: String
+    attributeValue: AttributeValueType
+ProductMediaTypeCursorConnection
+    pageInfo: PageInfo!
+    edges: [ProductMediaTypeCursorEdge!]!
+    totalCount: Int!
+ProductMediaTypeCursorEdge
+    cursor: String!
+    node: ProductMediaType!
+ProductMediaType
+    id: ID!
+    metadata: JSON
+    sortOrder: Int
+    product: ProductType
+    image: DjangoImageType
+    caption: String!
+    published: Boolean!
+ProductAttributeValueType
+    sortOrder: Int
+    attribute: AttributeType!
+    value: AttributeValueType!
+CategoryTranslationType
+    id: ID!
+    metaTitle: String
+    metaDescription: String
+    languageCode: Language!
+    name: String
+    description: String
+ProductClassTypeCursorConnection
+    pageInfo: PageInfo!
+    edges: [ProductClassTypeCursorEdge!]!
+    totalCount: Int!
+ProductClassTypeCursorEdge
+    cursor: String!
+    node: ProductClassType!
+PermissionClusterType
+    label: String!
+    permissions: [PermissionType!]!
+PermissionType
+    id: ID!
+    name: String!
+    codename: String!
+UserTypeCursorConnection
+    pageInfo: PageInfo!
+    edges: [UserTypeCursorEdge!]!
+    totalCount: Int!
+UserTypeCursorEdge
+    cursor: String!
+    node: UserType!
+UserType
+    id: ID!
+    metadata: JSON
+    description: String!
+    email: String!
+    firstName: String!
+    lastName: String!
+    isStaff: Boolean!
+    isActive: Boolean!
+    isConfirmed: Boolean!
+    isSuperuser: Boolean!
+    dateJoined: DateTime!
+    updatedAt: DateTime!
+    lastLogin: DateTime
+    avatar: DjangoImageType
+    languageCode: AccountUserLanguageCodeEnum!
+    groups: [GroupType!]!
+    permissions: [PermissionType!]!
+    groupPermissions: [PermissionType!]!
+    onlineStatus: Boolean!
+GroupType
+    id: ID!
+    name: String!
+    permissions: [PermissionType!]!
+    users: UserTypeCursorConnection!
+GroupTypeCursorConnection
+    pageInfo: PageInfo!
+    edges: [GroupTypeCursorEdge!]!
+    totalCount: Int!
+GroupTypeCursorEdge
+    cursor: String!
+    node: GroupType!
+PermissionMetadataType
+    typeName: String!
+    fieldName: String!
+    permissions: [String!]!
+AuthDetail
+    ok: Boolean!
+    status: AuthStatus!
+    message: String!
+    expireDate: DateTime
+Subscription
+    userOnlineCounts: UserOnlineCount!
+UserOnlineCount
+    onlines: Int!
+
+======================================================================
+INPUT_OBJECT types (23)
+======================================================================
+CategoryFilterType
+    id: GlobalIDBaseFilterLookup
+    isPublic: BoolBaseFilterLookup
+    ancestorsArePublic: BoolBaseFilterLookup
+    name: StrFilterLookup
+    slug: StrFilterLookup
+    updatedAt: DatetimeFilterLookup
+    AND: CategoryFilterType
+    OR: CategoryFilterType
+    NOT: CategoryFilterType
+    DISTINCT: Boolean
+GlobalIDBaseFilterLookup
+    exact: ID
+    isNull: Boolean
+    inList: [ID!]
+BoolBaseFilterLookup
+    exact: Boolean
+    isNull: Boolean
+    inList: [Boolean!]
+StrFilterLookup
+    exact: String
+    isNull: Boolean
+    inList: [String!]
+    iExact: String
+    contains: String
+    iContains: String
+    startsWith: String
+    iStartsWith: String
+    endsWith: String
+    iEndsWith: String
+    regex: String
+    iRegex: String
+DatetimeFilterLookup
+    exact: DateTime
+    isNull: Boolean
+    inList: [DateTime!]
+    gt: DateTime
+    gte: DateTime
+    lt: DateTime
+    lte: DateTime
+    range: DatetimeRangeLookup
+    year: IntComparisonFilterLookup
+    month: IntComparisonFilterLookup
+    day: IntComparisonFilterLookup
+    weekDay: IntComparisonFilterLookup
+    isoWeekDay: IntComparisonFilterLookup
+    week: IntComparisonFilterLookup
+    isoYear: IntComparisonFilterLookup
+    quarter: IntComparisonFilterLookup
+    hour: IntComparisonFilterLookup
+    minute: IntComparisonFilterLookup
+    second: IntComparisonFilterLookup
+    date: DateComparisonFilterLookup
+    time: TimeComparisonFilterLookup
+DatetimeRangeLookup
+    start: DateTime
+    end: DateTime
+IntComparisonFilterLookup
+    exact: Int
+    isNull: Boolean
+    inList: [Int!]
+    gt: Int
+    gte: Int
+    lt: Int
+    lte: Int
+    range: IntRangeLookup
+IntRangeLookup
+    start: Int
+    end: Int
+DateComparisonFilterLookup
+    exact: Date
+    isNull: Boolean
+    inList: [Date!]
+    gt: Date
+    gte: Date
+    lt: Date
+    lte: Date
+    range: DateRangeLookup
+DateRangeLookup
+    start: Date
+    end: Date
+TimeComparisonFilterLookup
+    exact: Time
+    isNull: Boolean
+    inList: [Time!]
+    gt: Time
+    gte: Time
+    lt: Time
+    lte: Time
+    range: TimeRangeLookup
+TimeRangeLookup
+    start: Time
+    end: Time
+CategoryOrderType
+    updatedAt: Ordering
+    hierarchy: Ordering
+TranslationModelFilter
+    languageCode: Language
+    AND: TranslationModelFilter
+    OR: TranslationModelFilter
+    NOT: TranslationModelFilter
+    DISTINCT: Boolean
+ProductClassFilter
+    id: GlobalIDFilterLookup
+    title: StrFilterLookup
+    slug: StrFilterLookup
+    requireShipping: BoolBaseFilterLookup
+    trackStock: BoolBaseFilterLookup
+    abstract: BoolBaseFilterLookup
+    AND: ProductClassFilter
+    OR: ProductClassFilter
+    NOT: ProductClassFilter
+    DISTINCT: Boolean
+GlobalIDFilterLookup
+    exact: ID
+    isNull: Boolean
+    inList: [ID!]
+    iExact: ID
+    contains: ID
+    iContains: ID
+    startsWith: ID
+    iStartsWith: ID
+    endsWith: ID
+    iEndsWith: ID
+    regex: ID
+    iRegex: ID
+ProductFilter
+    id: GlobalIDFilterLookup
+    title: StrFilterLookup
+    slug: StrFilterLookup
+    isPublic: BoolBaseFilterLookup
+    createdAt: DatetimeFilterLookup
+    updatedAt: DatetimeFilterLookup
+    productType: ProductClassFilter
+    AND: ProductFilter
+    OR: ProductFilter
+    NOT: ProductFilter
+    DISTINCT: Boolean
+AttributeFilter
+    inputType: ProductsAttributeInputTypeEnumFilterLookup
+    productClass: ProductClassFilter
+    variantOnly: BoolBaseFilterLookup
+    valueRequired: BoolBaseFilterLookup
+    AND: AttributeFilter
+    OR: AttributeFilter
+    NOT: AttributeFilter
+    DISTINCT: Boolean
+ProductsAttributeInputTypeEnumFilterLookup
+    exact: ProductsAttributeInputTypeEnum
+    isNull: Boolean
+    inList: [ProductsAttributeInputTypeEnum!]
+    iExact: ProductsAttributeInputTypeEnum
+    contains: ProductsAttributeInputTypeEnum
+    iContains: ProductsAttributeInputTypeEnum
+    startsWith: ProductsAttributeInputTypeEnum
+    iStartsWith: ProductsAttributeInputTypeEnum
+    endsWith: ProductsAttributeInputTypeEnum
+    iEndsWith: ProductsAttributeInputTypeEnum
+    regex: ProductsAttributeInputTypeEnum
+    iRegex: ProductsAttributeInputTypeEnum
+ProductVariantFilter
+    sku: StrFilterLookup
+    name: StrFilterLookup
+    product: ProductFilter
+    trackInventory: BoolBaseFilterLookup
+    createdAt: DatetimeFilterLookup
+    updatedAt: DatetimeFilterLookup
+    AND: ProductVariantFilter
+    OR: ProductVariantFilter
+    NOT: ProductVariantFilter
+    DISTINCT: Boolean
+PermissionFilterType
+    name: StrFilterLookup
+    AND: PermissionFilterType
+    OR: PermissionFilterType
+    NOT: PermissionFilterType
+    DISTINCT: Boolean
+UserFilterType
+    id: GlobalIDFilterLookup
+    isActive: BoolBaseFilterLookup
+    isConfirmed: BoolBaseFilterLookup
+    isSuperuser: BoolBaseFilterLookup
+    isStaff: BoolBaseFilterLookup
+    AND: UserFilterType
+    OR: UserFilterType
+    NOT: UserFilterType
+    DISTINCT: Boolean
+UserOrderType
+    id: Ordering
+    lastLogin: Ordering
+    updatedAt: Ordering
+    email: Ordering
+
+======================================================================
+ENUM types (7)
+======================================================================
+Ordering = [ASC | ASC_NULLS_FIRST | ASC_NULLS_LAST | DESC | DESC_NULLS_FIRST | DESC_NULLS_LAST]
+Language = [EN | FA | FR | DE | AR]
+ProductsAttributeInputTypeEnum = [dropdown | multiselect | file | reference | single_reference | numeric | rich_text | plain_text | swatch | boolean | date | date_time]
+ProductsAttributeUnitEnum = [MM | CM | DM | M | KM | INCH | G | LB | OZ | KG | SQ_MM | SQ_CM | SQ_DM | SQ_M | SQ_INCH]
+AttributeInputType = [DROPDOWN | MULTISELECT | FILE | REFERENCE | SINGLE_REFERENCE | NUMERIC | RICH_TEXT | PLAIN_TEXT | SWATCH | BOOLEAN | DATE | DATE_TIME]
+AccountUserLanguageCodeEnum = [en | fa | fr | de | ar]
+AuthStatus = [SUCCESS | REFRESH_TOKEN_MISSING | REFRESH_TOKEN_EXPIRED | USER_NOT_FOUND | ACCOUNT_DISABLED | INVALID_TOKEN_TYPE | INVALID_REFRESH_TOKEN | INVALID_CREDENTIALS]
+
+======================================================================
+INTERFACE types (6)
+======================================================================
+Node
+    id: ID!
+BaseSeoModelType
+    metaTitle: String
+    metaDescription: String
+ModelWithDescriptionType
+    metadata: JSON
+    description: String!
+ModelWithMetadataType
+    metadata: JSON
+TranslationModelType
+    metaTitle: String
+    metaDescription: String
+    languageCode: Language!
+SortableModelType
+    sortOrder: Int
+
+======================================================================
+UNION types (0)
+======================================================================
+
+======================================================================
+custom SCALARS (4)
+======================================================================
+JSON
+DateTime
+Date
+Time
