@@ -12,7 +12,7 @@ import {
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table"
-import { ChevronLeft, ChevronRight, Inbox, RefreshCw, TriangleAlert } from "lucide-react"
+import { ChevronLeft, ChevronRight, Inbox } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -23,6 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
+
+import { ErrorBanner } from "@/components/dashboard/error-banner"
 
 export type DataTableProps<T> = {
   columns: ColumnDef<T, unknown>[]
@@ -103,26 +105,14 @@ export function DataTable<T>({
         </div>
       )}
 
-      {error && (
-        <div
-          role="alert"
-          className="bg-destructive/10 text-destructive flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-sm"
-        >
-          <span className="flex items-center gap-2">
-            <TriangleAlert className="size-4" aria-hidden />
-            {error}
-          </span>
-          {onRetry && (
-            <Button variant="outline" size="sm" onClick={onRetry}>
-              <RefreshCw aria-hidden data-icon="inline-start" />
-              Retry
-            </Button>
-          )}
-        </div>
-      )}
+      <ErrorBanner error={error} onRetry={onRetry} toastPrefix="Failed to load data" />
 
       <div className="border-border/60 overflow-hidden rounded-xl border">
         <Table>
+          {/* Screen-reader summary of what this table shows */}
+          <caption className="sr-only">
+            {loading ? "Loading data" : table.getRowModel().rows.length === 0 ? emptyMessage : `${data.length} rows`}
+          </caption>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
@@ -206,6 +196,7 @@ export function DataTable<T>({
               size="sm"
               onClick={pagination.onPrevious}
               disabled={!pagination.hasPreviousPage || loading}
+              aria-label={loading ? "Loading…" : "Go to previous page"}
             >
               <ChevronLeft aria-hidden data-icon="inline-start" />
               Previous
@@ -215,6 +206,7 @@ export function DataTable<T>({
               size="sm"
               onClick={pagination.onNext}
               disabled={!pagination.hasNextPage || loading}
+              aria-label={loading ? "Loading…" : "Go to next page"}
             >
               Next
               <ChevronRight aria-hidden data-icon="inline-end" />

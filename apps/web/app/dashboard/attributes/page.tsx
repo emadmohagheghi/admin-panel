@@ -155,7 +155,7 @@ export default function AttributesPage() {
         totalCount={data?.attributes?.totalCount ?? null}
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Search name or slug…"
+        searchPlaceholder="Search name or slug (current page)…"
       />
     </div>
   )

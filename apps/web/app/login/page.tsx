@@ -101,6 +101,7 @@ export default function LoginPage() {
                 autoComplete="email"
                 placeholder="admin@example.com"
                 aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
                 className={cn(
                   "border-input bg-background ring-offset-background placeholder:text-muted-foreground h-10 w-full rounded-lg border px-3 text-sm shadow-xs transition-colors outline-none",
                   "focus-visible:ring-ring/50 focus-visible:border-ring focus-visible:ring-3",
@@ -110,7 +111,7 @@ export default function LoginPage() {
                 {...register("email")}
               />
               {errors.email && (
-                <p role="alert" className="text-destructive text-xs">
+                <p id="email-error" role="alert" className="text-destructive text-xs">
                   {errors.email.message}
                 </p>
               )}
@@ -127,6 +128,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   placeholder="••••••••"
                   aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? "password-error" : undefined}
                   className={cn(
                     "border-input bg-background ring-offset-background placeholder:text-muted-foreground h-10 w-full rounded-lg border px-3 pe-10 text-sm shadow-xs transition-colors outline-none",
                     "focus-visible:ring-ring/50 focus-visible:border-ring focus-visible:ring-3",
@@ -149,7 +151,7 @@ export default function LoginPage() {
                 </button>
               </div>
               {errors.password && (
-                <p role="alert" className="text-destructive text-xs">
+                <p id="password-error" role="alert" className="text-destructive text-xs">
                   {errors.password.message}
                 </p>
               )}

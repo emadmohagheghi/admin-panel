@@ -154,7 +154,7 @@ export default function UsersPage() {
         totalCount={data?.users?.totalCount ?? null}
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Search name or email…"
+        searchPlaceholder="Search name or email (current page)…"
       />
     </div>
   )
