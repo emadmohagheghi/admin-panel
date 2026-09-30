@@ -1,19 +1,27 @@
 // گیت احراز هویت در لبه (جایگزین middleware منسوخ‌شده در این نسخه‌ی Next).
-// روت‌های /dashboard بدون کوکی سشن به /login ریدایرکت می‌شوند.
-// توجه: نام دقیق کوکی سشن بک‌اند هنوز تأیید نشده؛ با env قابل تنظیم است
-// و بعد از اولین لاگین واقعی تأیید/تنظیم می‌شود.
+// احراز هویت JWT با کوکی است: اگر access نبود ولی refresh بود، ریدایرکت نمی‌کنیم
+// چون کلاینت در همان صفحه با میوتیشن refresh سشن تازه می‌گیرد.
+// فقط وقتی هیچ‌کدام نیست، به /login می‌رویم.
 import { NextResponse, type NextRequest } from "next/server"
 
-const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? "sessionid"
+const ACCESS_COOKIE = process.env.SESSION_COOKIE_NAME ?? "access"
+const REFRESH_COOKIES = (process.env.SESSION_COOKIE_NAMES ?? "refresh")
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean)
 const LOGIN_PATH = "/login"
 
 export function proxy(request: NextRequest) {
-  const hasSession = request.cookies.has(SESSION_COOKIE)
-  if (hasSession) return NextResponse.next()
-
-  const loginUrl = new URL(LOGIN_PATH, request.url)
-  loginUrl.searchParams.set("next", request.nextUrl.pathname)
-  return NextResponse.redirect(loginUrl)
+  // access هست → لاگین قطعی؛ هیچ‌کدام نیست → لاگین قطعی نیست
+  if (request.cookies.has(ACCESS_COOKIE)) return NextResponse.next()
+  const hasRefresh = REFRESH_COOKIES.some((name) => request.cookies.has(name))
+  if (!hasRefresh) {
+    const loginUrl = new URL(LOGIN_PATH, request.url)
+    loginUrl.searchParams.set("next", request.nextUrl.pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+  // فقط refresh: صفحه لود می‌شود و کلاینت سشن را با refresh تازه می‌کند
+  return NextResponse.next()
 }
 
 export const config = {

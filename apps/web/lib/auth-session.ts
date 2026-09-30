@@ -2,9 +2,16 @@
 // از کلاینت urql با TypedDocumentNodeهای تایپ‌سیف @workspace/graphql استفاده می‌کنیم؛
 // urql به صورت native TypedDocumentNode را می‌فهمد و نتیجه کاملاً تایپ‌شده است.
 import type { CombinedError } from "urql"
-import { LoginDocument, LogoutDocument, MeDocument, type ResultOf } from "@workspace/graphql"
+import {
+  LoginDocument,
+  LogoutDocument,
+  MeDocument,
+  RefreshSessionDocument,
+  type ResultOf,
+} from "@workspace/graphql"
 
-import { GRAPHQL_PROXY_PATH, makeClient } from "@/lib/urql"
+import { GRAPHQL_PROXY_PATH } from "@/lib/urql-env"
+import { makeClient } from "@/lib/urql"
 
 export type Me = NonNullable<ResultOf<typeof MeDocument>["me"]>
 export type LoginResult = ResultOf<typeof LoginDocument>["login"]
@@ -26,18 +33,36 @@ export function graphQLErrorMessage(err: CombinedError | undefined): string {
   return err.graphQLErrors[0]?.message ?? err.networkError?.message ?? "خطای ناشناخته"
 }
 
-/** خواندن کاربر جاری — null یعنی لاگین نیست */
+/**
+ * خواندن کاربر جاری — null یعنی باید به /login رفت.
+ *
+ * دو مسیر بازیابی سشن:
+ * ۱) اگر me خطای احراز هویت بدهد، authExchange (در lib/urql) خودش یک بار
+ *    refresh می‌زند و کوئری را تکرار می‌کند.
+ * ۲) اگر me بدون خطا null بدهد (بک‌اند به‌جای خطا null برگردانده)، اینجا
+ *    دستی یک بار refresh می‌زنیم و دوباره me را می‌خوانیم.
+ * فقط اگر بعد از این‌ها هم کاربری نبود، null برمی‌گردانیم.
+ */
 export async function fetchMe(): Promise<Me | null> {
   await ensureCsrfToken()
-  const { data, error } = await makeClient().query(MeDocument, {}).toPromise()
-  if (error || !data) return null
-  return data.me ?? null
+  const client = makeClient()
+
+  let result = await client.query(MeDocument, {}).toPromise()
+
+  if (!result.error && result.data && result.data.me === null) {
+    // شاید access منقضی/حذف شده ولی refresh معتبر است
+    await client.mutation(RefreshSessionDocument, {}).toPromise()
+    result = await client.query(MeDocument, {}).toPromise()
+  }
+
+  if (result.error || !result.data) return null
+  return result.data.me ?? null
 }
 
 /** لاگین — نتیجه‌ی ساختاریافته‌ی بک‌اند برمی‌گردد (ok/status/message) */
 export async function login(email: string, password: string): Promise<LoginResult> {
   await ensureCsrfToken()
-  // هدر X-CSRFToken لازم است چون میوتیشن، unprotected نیست
+  // هدر X-CSRFToken لازم است چون میوتیشن unprotected نیست
   const { data, error } = await makeClient()
     .mutation(LoginDocument, { email, password }, {
       fetchOptions: { headers: { "X-CSRFToken": readCsrfCookie() } },

@@ -3,7 +3,7 @@
 // هدر داشبورد — دکمه‌ی منو (موبایل)، تغییر تم، منوی کاربر با خروج.
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronDown, LogOut, Menu, UserRound } from "lucide-react"
+import { ChevronDown, LogOut, Menu } from "lucide-react"
 import { toast } from "sonner"
 
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
@@ -99,12 +99,6 @@ export function Header({ onOpenSidebar, me }: HeaderProps) {
                   {me.email}
                 </p>
               </div>
-              {me.isSuperuser && (
-                <div className="text-muted-foreground flex items-center gap-2 px-3 py-2 text-xs">
-                  <UserRound className="size-3.5" aria-hidden />
-                  دسترسی کامل (superuser)
-                </div>
-              )}
               <button
                 role="menuitem"
                 onClick={handleLogout}
