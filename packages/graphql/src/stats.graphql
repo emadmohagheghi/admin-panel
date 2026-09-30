@@ -1,0 +1,16 @@
+# ---------- آمار داشبورد ----------
+# شمارش کل مدل‌های اصلی در یک رفت‌وبرگشت (first:1 فقط برای سبک‌ماندن edges)
+query DashboardStats {
+  products(first: 1) {
+    totalCount
+  }
+  categories(first: 1) {
+    totalCount
+  }
+  variants(first: 1) {
+    totalCount
+  }
+  users(first: 1) {
+    totalCount
+  }
+}
