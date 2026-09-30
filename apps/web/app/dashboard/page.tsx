@@ -1,23 +1,22 @@
 "use client"
 
 // صفحه‌ی نمای کلی — کارت‌های آمار با کوئری DashboardStats (urql + TypedDocumentNode).
+// دسته‌بندی‌ها حذف شد چون totalCount آن هم پشت پرمیشن CATALOGUE_MANAGER قفل است.
 import { useQuery } from "urql"
-import { FolderTree, Layers, Package, Users } from "lucide-react"
+import { Layers, Package, Users } from "lucide-react"
 import { DashboardStatsDocument } from "@workspace/graphql"
 
 import { Card, CardContent } from "@workspace/ui/components/card"
 
 const STATS = [
   { key: "products", label: "محصولات", icon: Package, href: "/dashboard/products" },
-  { key: "categories", label: "دسته‌بندی‌ها", icon: FolderTree, href: "/dashboard/categories" },
-  { key: "variants", label: "واریانت‌ها", icon: Layers, href: "/dashboard/products" },
+  { key: "variants", label: "واریانت‌ها", icon: Layers, href: "/dashboard/variants" },
   { key: "users", label: "کاربران", icon: Users, href: "/dashboard/users" },
 ] as const
 
 type StatsData =
   | {
       products?: { totalCount?: number | null } | null
-      categories?: { totalCount?: number | null } | null
       variants?: { totalCount?: number | null } | null
       users?: { totalCount?: number | null } | null
     }
@@ -46,7 +45,7 @@ export default function DashboardOverviewPage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {STATS.map((stat) => {
           const count = getStatCount(data, stat.key)
           const showSkeleton = fetching && count === null

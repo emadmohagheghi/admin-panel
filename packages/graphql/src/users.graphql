@@ -1,5 +1,9 @@
 # ---------- کاربران و گروه‌ها ----------
-# لیست کاربران با فیلتر، مرتب‌سازی و صفحه‌بندی cursor
+# نکته‌ی پرمیشن (تست‌شده با اکانت واقعی): فیلدهای id و isSuperuser در
+# UserType پشت پرمیشن GROUP_MANAGER و CHECK_SUPERUSER_STATUS قفل‌اند و
+# درخواست نمی‌شوند؛ بقیه‌ی فیلدهای زیر باز است.
+
+# لیست کاربران با فیلتر، مرتب‌سازی سروری و صفحه‌بندی cursor
 query UsersList(
   $first: Int
   $after: String
@@ -17,75 +21,19 @@ query UsersList(
     edges {
       cursor
       node {
-        id
         email
         firstName
         lastName
         isStaff
         isActive
         isConfirmed
-        isSuperuser
         dateJoined
+        updatedAt
         lastLogin
         onlineStatus
+        languageCode
         avatar {
           url
-        }
-      }
-    }
-  }
-}
-
-query UserDetail($id: ID!) {
-  user(id: $id) {
-    id
-    email
-    firstName
-    lastName
-    description
-    isStaff
-    isActive
-    isConfirmed
-    isSuperuser
-    dateJoined
-    updatedAt
-    lastLogin
-    languageCode
-    onlineStatus
-    avatar {
-      url
-    }
-    groups {
-      id
-      name
-    }
-    permissions {
-      id
-      name
-      codename
-    }
-  }
-}
-
-# لیست گروه‌های دسترسی
-query GroupsList($first: Int, $after: String) {
-  groups(first: $first, after: $after) {
-    totalCount
-    pageInfo {
-      hasNextPage
-      hasPreviousPage
-      startCursor
-      endCursor
-    }
-    edges {
-      cursor
-      node {
-        id
-        name
-        permissions {
-          id
-          name
-          codename
         }
       }
     }

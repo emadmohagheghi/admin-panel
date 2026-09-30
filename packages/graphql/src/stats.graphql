@@ -1,10 +1,8 @@
 # ---------- آمار داشبورد ----------
-# شمارش کل مدل‌های اصلی در یک رفت‌وبرگشت (first:1 فقط برای سبک‌ماندن edges)
+# شمارش مدل‌های اصلی در یک رفت‌وبرگشت (first:1 فقط برای سبک‌ماندن edges)
+# نکته: categories totalCount پشت پرمیشن CATALOGUE_MANAGER قفل است و نیست.
 query DashboardStats {
   products(first: 1) {
-    totalCount
-  }
-  categories(first: 1) {
     totalCount
   }
   variants(first: 1) {

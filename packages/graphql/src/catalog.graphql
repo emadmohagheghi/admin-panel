@@ -1,0 +1,74 @@
+# ---------- کاتالوگ: واریانت، کلاس محصول، ویژگی ----------
+# نکته‌ی پرمیشن (تست‌شده با اکانت واقعی): فیلد id در این مدل‌ها قفل است
+# (GROUP_MANAGER)؛ بقیه‌ی فیلدهای زیر باز است.
+
+# لیست واریانت‌ها با فیلتر سروری (sku/name) و صفحه‌بندی cursor
+query VariantsList($first: Int, $after: String, $filters: ProductVariantFilter) {
+  variants(first: $first, after: $after, filters: $filters) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        sku
+        name
+        trackInventory
+        sortOrder
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+
+# لیست کلاس‌های محصول
+query ProductClassesList($first: Int, $after: String, $filters: ProductClassFilter) {
+  productClasses(first: $first, after: $after, filters: $filters) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        title
+        slug
+        requireShipping
+        trackStock
+        abstract
+      }
+    }
+  }
+}
+
+# لیست ویژگی‌ها
+query AttributesList($first: Int, $after: String, $filters: AttributeFilter) {
+  attributes(first: $first, after: $after, filters: $filters) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        name
+        slug
+        inputType
+        valueRequired
+        variantOnly
+        unit
+      }
+    }
+  }
+}

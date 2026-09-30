@@ -1,0 +1,226 @@
+"use client"
+
+// جدول داده‌ی ژنریک — TanStack Table + سه حالت loading/error/empty + صفحه‌بندی cursor.
+// ترکیب با motion بعداً آسان باشد: ساختار تمیز، بدون استایل inline، همه کلاس Tailwind.
+import { useState } from "react"
+import {
+  getCoreRowModel,
+  getSortedRowModel,
+  flexRender,
+  useReactTable,
+  type ColumnDef,
+  type SortingState,
+} from "@tanstack/react-table"
+import { ChevronLeft, ChevronRight, Inbox, RefreshCw, TriangleAlert } from "lucide-react"
+
+import { Button } from "@workspace/ui/components/button"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@workspace/ui/components/table"
+
+export type DataTableProps<T> = {
+  columns: ColumnDef<T, unknown>[]
+  data: T[]
+  /** وضعیت بارگذاری اولیه یا پس‌زمینه‌ای */
+  loading: boolean
+  error?: string | null
+  onRetry?: () => void
+  /** پیام حالت خالی */
+  emptyMessage: string
+  /** صفحه‌بندی cursor (اگر داده سروری صفحه‌بندی می‌شود) */
+  pagination?: {
+    hasNextPage: boolean
+    hasPreviousPage: boolean
+    onNext: () => void
+    onPrevious: () => void
+  }
+  /** شماره‌ی صفحه برای نمایش (اختیاری) */
+  pageLabel?: string
+  /** شمارش کل رکوردها (اختیاری؛ اگر باشد کنار جستجو می‌نشیند) */
+  totalCount?: number | null
+  /** جستجوی کلاینت‌ساید (فقط صفحه‌ی جاری) */
+  searchValue?: string
+  onSearchChange?: (value: string) => void
+  searchPlaceholder?: string
+}
+
+export function DataTable<T>({
+  columns,
+  data,
+  loading,
+  error,
+  onRetry,
+  emptyMessage,
+  pagination,
+  pageLabel,
+  totalCount,
+  searchValue,
+  onSearchChange,
+  searchPlaceholder,
+}: DataTableProps<T>) {
+  const [sorting, setSorting] = useState<SortingState>([])
+
+  // React Compiler این کامپوننت را memoize نمی‌کند (هشدار react-hooks/incompatible-library)
+  // — بی‌خطر است: جدول state داخلی خودش را مدیریت می‌کند.
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    state: { sorting },
+    onSortingChange: setSorting,
+    manualPagination: true,
+    manualFiltering: true,
+  })
+
+  return (
+    <div className="space-y-3">
+      {(onSearchChange || totalCount != null) && (
+        <div className="flex flex-wrap items-center gap-3">
+          {onSearchChange && (
+            <input
+              type="search"
+              role="searchbox"
+              aria-label={searchPlaceholder ?? "جستجو"}
+              value={searchValue ?? ""}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder={searchPlaceholder ?? "جستجو…"}
+              className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring/50 h-9 w-full max-w-xs rounded-lg border px-3 text-sm shadow-xs transition-colors outline-none focus-visible:border-ring focus-visible:ring-3"
+            />
+          )}
+          {totalCount != null && (
+            <span className="text-muted-foreground text-xs tabular-nums">
+              مجموع: {totalCount.toLocaleString("fa-IR")} مورد
+            </span>
+          )}
+        </div>
+      )}
+
+      {error && (
+        <div
+          role="alert"
+          className="bg-destructive/10 text-destructive flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-sm"
+        >
+          <span className="flex items-center gap-2">
+            <TriangleAlert className="size-4" aria-hidden />
+            {error}
+          </span>
+          {onRetry && (
+            <Button variant="outline" size="sm" onClick={onRetry}>
+              <RefreshCw aria-hidden data-icon="inline-start" />
+              تلاش مجدد
+            </Button>
+          )}
+        </div>
+      )}
+
+      <div className="border-border/60 overflow-hidden rounded-xl border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const sortable = header.column.getCanSort()
+                  const sorted = header.column.getIsSorted()
+                  return (
+                    <TableHead
+                      key={header.id}
+                      aria-sort={
+                        sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined
+                      }
+                    >
+                      {header.isPlaceholder ? null : sortable ? (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className="hover:text-foreground flex w-full items-center gap-1 outline-none"
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          <span aria-hidden className="text-[10px] opacity-60">
+                            {sorted === "asc" ? "▲" : sorted === "desc" ? "▼" : "↕"}
+                          </span>
+                        </button>
+                      ) : (
+                        flexRender(header.column.columnDef.header, header.getContext())
+                      )}
+                    </TableHead>
+                  )
+                })}
+              </tr>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              // اسکلتون بارگذاری
+              Array.from({ length: 8 }, (_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  {table.getAllLeafColumns().map((col) => (
+                    <TableCell key={col.id}>
+                      <div
+                        className="bg-muted h-4 w-full max-w-28 animate-pulse rounded"
+                        aria-hidden
+                      />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-40">
+                  <div className="text-muted-foreground flex flex-col items-center justify-center gap-2 text-center">
+                    <Inbox className="size-8 opacity-40" aria-hidden />
+                    <p className="text-sm">{emptyMessage}</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {pagination && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-muted-foreground text-xs">
+            {pageLabel ?? "صفحه‌بندی بر اساس cursor سرور"}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={pagination.onPrevious}
+              disabled={!pagination.hasPreviousPage || loading}
+            >
+              <ChevronRight aria-hidden data-icon="inline-start" />
+              قبلی
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={pagination.onNext}
+              disabled={!pagination.hasNextPage || loading}
+            >
+              بعدی
+              <ChevronLeft aria-hidden data-icon="inline-end" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
