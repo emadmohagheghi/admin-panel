@@ -1,6 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": ["GRAPHQL_BACKEND_ENDPOINT", "GRAPHQL_PROXY_PATH", "SESSION_COOKIE_NAME", "NODE_ENV"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
