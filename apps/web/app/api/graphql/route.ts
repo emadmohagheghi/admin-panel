@@ -15,30 +15,46 @@
 // Why a Route Handler instead of rewrites? Django rejects foreign Referer
 // headers on HTTPS (verified: POST with a localhost Referer → 403 CSRF check).
 import { NextRequest, NextResponse } from "next/server"
-import { Agent } from "undici"
+import { Agent, fetch as undiciFetch } from "undici"
 
 const BACKEND_URL = process.env.GRAPHQL_BACKEND_ENDPOINT ?? ""
 
 /**
  * TEMPORARY (development only): the backend currently runs on
- * https://193.228.90.241:7777 with a self-signed certificate, which Node's
- * fetch rejects by default. While that cert is in place, dev proxy requests
- * go through an undici Agent with TLS verification disabled — scoped to ONLY
- * the two backend fetches in this file via `dispatcher`. This deliberately
- * avoids NODE_TLS_REJECT_UNAUTHORIZED, which would silently weaken TLS for
- * every connection in the process. Production keeps full verification: the
- * agent is not created outside development and must be removed once the
- * backend gets a trusted certificate.
+ * https://193.228.90.241:7777 with a self-signed certificate, which fetch
+ * rejects by default. While that cert is in place, dev proxy requests go
+ * through an undici Agent with TLS verification disabled — scoped to ONLY
+ * the two backend fetches in this file. This deliberately avoids
+ * NODE_TLS_REJECT_UNAUTHORIZED, which would silently weaken TLS for every
+ * connection in the process. Production keeps full verification: the agent
+ * is not created outside development and must be removed once the backend
+ * gets a trusted certificate.
  */
 const devTlsAgent =
   process.env.NODE_ENV === "development"
     ? new Agent({ connect: { rejectUnauthorized: false } })
     : undefined
 
-/** Attach the dev-only TLS agent to a backend fetch init (production: unchanged) */
-function withDevTlsAgent(init: RequestInit): RequestInit {
-  if (!devTlsAgent) return init
-  return { ...init, dispatcher: devTlsAgent } as RequestInit
+/**
+ * Backend fetch helper. In development it must use undici's own fetch:
+ * Node's global fetch accepts a `dispatcher` option only from its bundled
+ * internal undici and throws UND_ERR_INVALID_ARG for a third-party Agent
+ * (verified: "global fetch + dispatcher → UND_ERR_INVALID_ARG", while
+ * "undici.fetch + dispatcher → 200"). undici's fetch performs no HTTP
+ * caching, so the cache option is dropped there; production keeps the
+ * global fetch with `cache: "no-store"` and full TLS verification.
+ */
+async function backendFetch(url: string, init: RequestInit): Promise<Response> {
+  if (!devTlsAgent) return fetch(url, init)
+  // undici fetch performs no HTTP caching — drop the cache option.
+  const rest: RequestInit = { ...init }
+  delete (rest as { cache?: unknown }).cache
+  // undici's RequestInit type differs slightly from the global one (body
+  // stream identity), so bridge through unknown — runtime shape is compatible.
+  return undiciFetch(
+    url,
+    { ...rest, dispatcher: devTlsAgent } as unknown as Parameters<typeof undiciFetch>[1],
+  ) as unknown as Response
 }
 
 /** Session cookie name for the proxy.ts gate (Django default) */
@@ -116,13 +132,10 @@ function ensureConfigured(): NextResponse | null {
  * Used to bootstrap the CSRF session when the browser has no cookie yet.
  */
 async function fetchFreshCsrfToken(): Promise<string | null> {
-  const res = await fetch(
-    BACKEND_URL,
-    withDevTlsAgent({
-      headers: { Accept: "text/html" },
-      cache: "no-store",
-    }),
-  )
+  const res = await backendFetch(BACKEND_URL, {
+    headers: { Accept: "text/html" },
+    cache: "no-store",
+  })
   if (!res.ok) return null
   return extractCsrfToken(getSetCookies(res.headers))
 }
@@ -198,23 +211,20 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = await request.text()
-  const backendRes = await fetch(
-    BACKEND_URL,
-    withDevTlsAgent({
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "X-CSRFToken": csrf,
-        // Referer must match the backend URL: Django's CSRF check on HTTPS
-        // rejects foreign Referer headers.
-        Referer: BACKEND_URL,
-        Cookie: backendCookieHeader,
-      },
-      body: payload,
-      cache: "no-store",
-    }),
-  )
+  const backendRes = await backendFetch(BACKEND_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "X-CSRFToken": csrf,
+      // Referer must match the backend URL: Django's CSRF check on HTTPS
+      // rejects foreign Referer headers.
+      Referer: BACKEND_URL,
+      Cookie: backendCookieHeader,
+    },
+    body: payload,
+    cache: "no-store",
+  })
 
   const body = await backendRes.text()
   const res = new NextResponse(body, {
