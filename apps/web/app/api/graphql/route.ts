@@ -15,8 +15,31 @@
 // Why a Route Handler instead of rewrites? Django rejects foreign Referer
 // headers on HTTPS (verified: POST with a localhost Referer → 403 CSRF check).
 import { NextRequest, NextResponse } from "next/server"
+import { Agent } from "undici"
 
 const BACKEND_URL = process.env.GRAPHQL_BACKEND_ENDPOINT ?? ""
+
+/**
+ * TEMPORARY (development only): the backend currently runs on
+ * https://193.228.90.241:7777 with a self-signed certificate, which Node's
+ * fetch rejects by default. While that cert is in place, dev proxy requests
+ * go through an undici Agent with TLS verification disabled — scoped to ONLY
+ * the two backend fetches in this file via `dispatcher`. This deliberately
+ * avoids NODE_TLS_REJECT_UNAUTHORIZED, which would silently weaken TLS for
+ * every connection in the process. Production keeps full verification: the
+ * agent is not created outside development and must be removed once the
+ * backend gets a trusted certificate.
+ */
+const devTlsAgent =
+  process.env.NODE_ENV === "development"
+    ? new Agent({ connect: { rejectUnauthorized: false } })
+    : undefined
+
+/** Attach the dev-only TLS agent to a backend fetch init (production: unchanged) */
+function withDevTlsAgent(init: RequestInit): RequestInit {
+  if (!devTlsAgent) return init
+  return { ...init, dispatcher: devTlsAgent } as RequestInit
+}
 
 /** Session cookie name for the proxy.ts gate (Django default) */
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? "access"
@@ -93,10 +116,13 @@ function ensureConfigured(): NextResponse | null {
  * Used to bootstrap the CSRF session when the browser has no cookie yet.
  */
 async function fetchFreshCsrfToken(): Promise<string | null> {
-  const res = await fetch(BACKEND_URL, {
-    headers: { Accept: "text/html" },
-    cache: "no-store",
-  })
+  const res = await fetch(
+    BACKEND_URL,
+    withDevTlsAgent({
+      headers: { Accept: "text/html" },
+      cache: "no-store",
+    }),
+  )
   if (!res.ok) return null
   return extractCsrfToken(getSetCookies(res.headers))
 }
@@ -172,18 +198,23 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = await request.text()
-  const backendRes = await fetch(BACKEND_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "X-CSRFToken": csrf,
-      Referer: BACKEND_URL,
-      Cookie: backendCookieHeader,
-    },
-    body: payload,
-    cache: "no-store",
-  })
+  const backendRes = await fetch(
+    BACKEND_URL,
+    withDevTlsAgent({
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-CSRFToken": csrf,
+        // Referer must match the backend URL: Django's CSRF check on HTTPS
+        // rejects foreign Referer headers.
+        Referer: BACKEND_URL,
+        Cookie: backendCookieHeader,
+      },
+      body: payload,
+      cache: "no-store",
+    }),
+  )
 
   const body = await backendRes.text()
   const res = new NextResponse(body, {

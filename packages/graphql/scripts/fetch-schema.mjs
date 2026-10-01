@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url"
 import { buildClientSchema, printSchema } from "graphql"
 
 const ENDPOINT =
-  process.env.GRAPHQL_ENDPOINT ?? "https://ecommerce-zariny.vercel.app/dashboard/graphql/"
+  process.env.GRAPHQL_ENDPOINT ?? "https://193.228.90.241:7777/dashboard/graphql/"
 
 const INTROSPECTION_QUERY = /* GraphQL */ `
   query IntrospectionQuery {
