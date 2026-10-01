@@ -10,6 +10,9 @@
     "cssVariables": true
   },
   "iconLibrary": "lucide",
+  "registries": {
+    "@efferd": "https://efferd.com/r/{style}/{name}.json"
+  },
   "aliases": {
     "components": "@/components",
     "hooks": "@/hooks",
