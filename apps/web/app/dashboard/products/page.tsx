@@ -21,7 +21,7 @@ export default function ProductsPage() {
 
       <Card>
         <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-          <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 flex size-12 items-center justify-center rounded-full">
+          <span className="bg-warning/10 text-warning flex size-12 items-center justify-center rounded-full">
             <Lock className="size-5" aria-hidden />
           </span>
           <div className="max-w-md space-y-1.5">

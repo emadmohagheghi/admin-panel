@@ -35,7 +35,7 @@ function UserCell({ user }: { user: UserNode }) {
         aria-hidden
         className={
           user.onlineStatus
-            ? "bg-emerald-500 relative -ml-4 size-2.5 rounded-full ring-2 ring-background"
+            ? "bg-success relative -ml-4 size-2.5 rounded-full ring-2 ring-background"
             : "hidden"
         }
       />

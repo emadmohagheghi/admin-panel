@@ -133,7 +133,7 @@ export function DataTable<T>({
                           className="hover:text-foreground flex w-full items-center gap-1 outline-none"
                         >
                           {flexRender(header.column.columnDef.header, header.getContext())}
-                          <span aria-hidden className="text-[10px] opacity-60">
+                          <span aria-hidden className="text-xs opacity-60">
                             {sorted === "asc" ? "▲" : sorted === "desc" ? "▼" : "↕"}
                           </span>
                         </button>
