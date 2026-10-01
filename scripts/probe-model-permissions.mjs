@@ -2,12 +2,20 @@
 // برای هر مدل: یک کوئری با همه‌ی فیلدها → فیلدهای مجاز از data و
 // فیلدهای قفل‌شده از path خطاها استخراج می‌شوند.
 // ایمیل‌ها ماسک می‌شوند؛ هیچ مقدار حساسی چاپ یا ذخیره نمی‌شود.
-// اجرا: node scripts/probe-model-permissions.mjs [base-url]
+// اجرا: NODE_TLS_REJECT_UNAUTHORIZED=0 node scripts/probe-model-permissions.mjs [backend-url]
+// (گواهی بک‌اند self-signed است؛ این متغیر فقط داخل همین پروسه‌ی یک‌بارمصرف است)
+// پیش‌فرض: GRAPHQL_BACKEND_ENDPOINT از apps/web/.env.local خوانده می‌شود.
 import fs from "node:fs"
 import path from "node:path"
 
-const BASE = process.argv[2] ?? "http://localhost:3000"
-const PROXY = `${BASE}/api/graphql`
+const BACKEND =
+  process.argv[2] ??
+  readEnvLocal().GRAPHQL_BACKEND_ENDPOINT ??
+  "https://193.228.90.241:7777/dashboard/graphql/"
+
+async function backendFetch(url, init = {}) {
+  return fetch(url, init)
+}
 
 function readEnvLocal() {
   const env = {}
@@ -32,11 +40,12 @@ function cookieHeader() {
   return Object.entries(store).map(([n, v]) => `${n}=${v}`).join("; ")
 }
 async function gql(query, variables = {}) {
-  const res = await fetch(PROXY, {
+  const res = await backendFetch(BACKEND, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-CSRFToken": decodeURIComponent(store.csrftoken ?? ""),
+      Referer: BACKEND,
       Cookie: cookieHeader(),
     },
     body: JSON.stringify({ query, variables }),
@@ -113,8 +122,8 @@ const PROBES = [
 const env = readEnvLocal()
 
 // ورود
-await fetch(PROXY)
-collect((await fetch(PROXY)).headers.getSetCookie?.() ?? [])
+const page = await backendFetch(BACKEND, { headers: { Accept: "text/html" } })
+collect(page.headers.getSetCookie?.() ?? [])
 const login = await gql(
   `mutation { login(email: ${JSON.stringify(env.DASHBOARD_EMAIL)}, password: ${JSON.stringify(env.DASHBOARD_PASSWORD)}) { ok message } }`,
 )
@@ -129,18 +138,15 @@ for (const probe of PROBES) {
   const r = await gql(query)
   console.log(`\n===== ${probe.name} =====`)
   if (r.errors) {
-    // فیلدهای قفل از path خطاها
+    // فیلدهای قفل از آخرین segment هر path خطا + پیام پرمیشن
     const locked = new Set()
     for (const e of r.errors) {
-      if (e.path && /permission/i.test(e.message)) {
-        locked.add(String(e.path[1] ?? e.path[0] ?? "?"))
-      } else if (e.path) {
-        locked.add(String(e.path[1] ?? e.path[0] ?? "?"))
-      } else {
-        locked.add("(کل لیست) " + e.message.slice(0, 60))
-      }
+      if (e.path) locked.add(String(e.path.at(-1)))
+      else locked.add("(کل لیست) " + e.message.slice(0, 60))
     }
     console.log("  قفل‌شده:", [...locked].join(", ") || "?")
+    const msgs = [...new Set(r.errors.map((e) => e.message.split(":")[0].slice(0, 70)))]
+    for (const m of msgs) console.log("  پیام:", m)
   }
   if (r.data) {
     const conn = r.data[probe.name.split(/(?=[A-Z])/)[0]] ?? r.data[Object.keys(r.data)[0]]
