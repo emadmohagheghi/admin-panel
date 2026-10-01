@@ -25,7 +25,9 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader className="h-14 justify-center">
         <SidebarMenuButton tooltip="Dashboard" render={<Link href="/dashboard" />}>
-          <span className="bg-sidebar-primary text-sidebar-primary-foreground flex size-7 shrink-0 items-center justify-center rounded-lg">
+          {/* In icon-collapse mode the button clips its 16px content box, so
+              the logo box shrinks to exactly that size to stay unclipped. */}
+          <span className="bg-sidebar-primary text-sidebar-primary-foreground flex size-7 shrink-0 items-center justify-center rounded-lg group-data-[collapsible=icon]:size-4! group-data-[collapsible=icon]:rounded-md!">
             <StoreIcon className="size-4" aria-hidden />
           </span>
           <span className="font-medium">Zariny Admin</span>
