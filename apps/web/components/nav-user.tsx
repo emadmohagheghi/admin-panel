@@ -1,101 +1,85 @@
-"use client";
+"use client"
+
+// User menu (from the @efferd/dashboard-3 block) wired to the real session:
+// the user comes from the SessionGate's `me` query (passed down as a prop),
+// logout calls the real mutation. Falls back gracefully when me fields are
+// missing (name/email/avatar).
+import { useRouter } from "next/navigation"
+import { LogOutIcon } from "lucide-react"
+import { toast } from "sonner"
 
 import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@workspace/ui/components/avatar";
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar"
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@workspace/ui/components/dropdown-menu";
-import { UserIcon, BellIcon, CommandIcon, LifeBuoyIcon, GraduationCapIcon, CreditCardIcon, LogOutIcon } from "lucide-react";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu"
+import { Button } from "@workspace/ui/components/button"
 
-const user = {
-	name: "Shaban Haider",
-	email: "shaban@efferd.com",
-	avatar: "https://github.com/shabanhr.png",
-};
+import { logout, type Me } from "@/lib/auth-session"
 
-export function NavUser() {
-	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger render={<Avatar className="size-8" />}><AvatarImage src={user.avatar} /><AvatarFallback>{user.name.charAt(0)}</AvatarFallback></DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-60">
-				<DropdownMenuItem className="flex items-center justify-start gap-2">
-					<DropdownMenuLabel className="flex items-center gap-3">
-						<Avatar className="size-10">
-							<AvatarImage src={user.avatar} />
-							<AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-						</Avatar>
-						<div>
-							<span className="font-medium text-foreground">{user.name}</span>{" "}
-							<br />
-							<div className="max-w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-muted-foreground text-xs">
-								{user.email}
-							</div>
-						</div>
-					</DropdownMenuLabel>
-				</DropdownMenuItem>
-				<DropdownMenuSeparator />
-				<DropdownMenuGroup>
-					<DropdownMenuItem>
-						<UserIcon
-						/>
-						Profile
-					</DropdownMenuItem>
-				</DropdownMenuGroup>
-				<DropdownMenuSeparator />
-				<DropdownMenuGroup>
-					<DropdownMenuItem>
-						<BellIcon
-						/>
-						Notifications
-					</DropdownMenuItem>
-					<DropdownMenuItem>
-						<CommandIcon
-						/>
-						Keyboard shortcuts
-					</DropdownMenuItem>
-				</DropdownMenuGroup>
-				<DropdownMenuSeparator />
-				<DropdownMenuGroup>
-					<DropdownMenuItem>
-						<LifeBuoyIcon
-						/>
-						Help center
-					</DropdownMenuItem>
-					<DropdownMenuItem>
-						<GraduationCapIcon
-						/>
-						Agent training
-					</DropdownMenuItem>
-				</DropdownMenuGroup>
-				<DropdownMenuSeparator />
-				<DropdownMenuGroup>
-					<DropdownMenuItem>
-						<CreditCardIcon
-						/>
-						Subscription
-					</DropdownMenuItem>
-				</DropdownMenuGroup>
-				<DropdownMenuSeparator />
-				<DropdownMenuGroup>
-					<DropdownMenuItem
-						className="w-full cursor-pointer"
-						variant="destructive"
-					>
-						<LogOutIcon
-						/>
-						Log out
-					</DropdownMenuItem>
-				</DropdownMenuGroup>
-			</DropdownMenuContent>
-		</DropdownMenu>
-	);
+export function NavUser({ me }: { me: Me }) {
+  const router = useRouter()
+
+  const displayName =
+    [me.firstName, me.lastName].filter(Boolean).join(" ") || me.email || "Account"
+  const initials = (me.firstName?.[0] ?? me.email?.[0] ?? "?").toUpperCase()
+
+  async function handleLogout() {
+    try {
+      await logout()
+      toast.success("Signed out successfully")
+    } catch {
+      toast.error("Sign out failed")
+    } finally {
+      router.replace("/login")
+    }
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" className="h-8 gap-2 px-1.5" aria-label="User menu" />}
+      >
+        <Avatar className="size-7">
+          {me.avatar?.url ? <AvatarImage src={me.avatar.url} alt="" /> : null}
+          <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+        </Avatar>
+        <span className="hidden max-w-40 truncate sm:inline">{displayName}</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-60">
+        <DropdownMenuLabel className="flex items-center gap-3">
+          <Avatar className="size-10">
+            {me.avatar?.url ? <AvatarImage src={me.avatar.url} alt="" /> : null}
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <span className="block truncate font-medium text-foreground">{displayName}</span>
+            <div className="max-w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-muted-foreground text-xs">
+              {me.email ?? "—"}
+            </div>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem
+            className="w-full cursor-pointer"
+            variant="destructive"
+            onClick={handleLogout}
+          >
+            <LogOutIcon aria-hidden />
+            Sign out
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }

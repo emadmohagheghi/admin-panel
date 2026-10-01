@@ -1,63 +1,46 @@
-import { LogoIcon } from "@/components/logo";
-import { Button } from "@workspace/ui/components/button";
+"use client"
+
+// Dashboard sidebar (from the @efferd/dashboard-3 shell) wired to the real
+// project routes: active state follows the current pathname and links use
+// next/link instead of hash anchors.
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { StoreIcon } from "lucide-react"
+
 import {
-	Sidebar,
-	SidebarContent,
-	SidebarFooter,
-	SidebarGroup,
-	SidebarHeader,
-	SidebarMenu,
-	SidebarMenuButton,
-	SidebarMenuItem,
-} from "@workspace/ui/components/sidebar";
-import { NavGroup } from "@/components/nav-group";
-import { footerNavLinks, navGroups } from "@/components/app-shared";
-import { LatestChange } from "@/components/latest-change";
-import { PlusIcon, SearchIcon } from "lucide-react";
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenuButton,
+} from "@workspace/ui/components/sidebar"
+
+import { NavGroup } from "@/components/nav-group"
+import { navGroups } from "@/components/app-shared"
 
 export function AppSidebar() {
-	return (
-		<Sidebar collapsible="icon" variant="inset">
-			<SidebarHeader className="h-14 justify-center">
-				<SidebarMenuButton render={<a href="#link" />}><LogoIcon /><span className="font-medium">Efferd</span></SidebarMenuButton>
-			</SidebarHeader>
-			<SidebarContent>
-				<SidebarGroup>
-					<SidebarMenuItem className="flex items-center gap-2">
-						<SidebarMenuButton
-							className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-							tooltip="Quick Create"
-						>
-							<PlusIcon
-							/>
-							<span>New Conversation</span>
-						</SidebarMenuButton>
-						<Button
-							aria-label="Search conversations"
-							className="size-8 group-data-[collapsible=icon]:opacity-0"
-							size="icon"
-							variant="outline"
-						>
-							<SearchIcon
-							/>
-							<span className="sr-only">Search conversations</span>
-						</Button>
-					</SidebarMenuItem>
-				</SidebarGroup>
-				{navGroups.map((group, index) => (
-					<NavGroup key={`sidebar-group-${index}`} {...group} />
-				))}
-			</SidebarContent>
-			<SidebarFooter>
-				<LatestChange />
-				<SidebarMenu className="mt-2">
-					{footerNavLinks.map((item) => (
-						<SidebarMenuItem key={item.title}>
-							<SidebarMenuButton className="text-muted-foreground" isActive={item.isActive} size="sm" render={<a href={item.path} />}>{item.icon}<span>{item.title}</span></SidebarMenuButton>
-						</SidebarMenuItem>
-					))}
-				</SidebarMenu>
-			</SidebarFooter>
-		</Sidebar>
-	);
+  const pathname = usePathname()
+
+  return (
+    <Sidebar collapsible="icon" variant="inset">
+      <SidebarHeader className="h-14 justify-center">
+        <SidebarMenuButton tooltip="Dashboard" render={<Link href="/dashboard" />}>
+          <span className="bg-sidebar-primary text-sidebar-primary-foreground flex size-7 shrink-0 items-center justify-center rounded-lg">
+            <StoreIcon className="size-4" aria-hidden />
+          </span>
+          <span className="font-medium">Zariny Admin</span>
+        </SidebarMenuButton>
+      </SidebarHeader>
+      <SidebarContent>
+        {navGroups(pathname).map((group, index) => (
+          <NavGroup key={`sidebar-group-${index}`} {...group} />
+        ))}
+      </SidebarContent>
+      <SidebarFooter>
+        <div className="text-sidebar-foreground/50 px-2 py-1 text-xs group-data-[collapsible=icon]:hidden">
+          Zariny Store Admin — v0.1
+        </div>
+      </SidebarFooter>
+    </Sidebar>
+  )
 }
