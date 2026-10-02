@@ -10,11 +10,13 @@ import {
   flexRender,
   useReactTable,
   type ColumnDef,
+  type RowData,
   type SortingState,
 } from "@tanstack/react-table"
 import { ChevronLeft, ChevronRight, Inbox } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 import {
   Table,
   TableBody,
@@ -30,6 +32,18 @@ import { ErrorBanner } from "@/components/dashboard/error-banner"
 /** Edge padding for the first/last column, matching the members-table design */
 function edgePaddingClass(index: number, count: number): string {
   return cn(index === 0 && "ps-4", index === count - 1 && "pe-4")
+}
+
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- required module augmentation signature
+  interface ColumnMeta<TData extends RowData, TValue> {
+    /**
+     * Height of the loading placeholder for this column so skeleton rows are
+     * exactly as tall as loaded rows (no layout jump when data arrives).
+     * Default h-5 matches single-line cells; multi-line cells set their own.
+     */
+    skeletonClassName?: string
+  }
 }
 
 export type DataTableProps<T> = {
@@ -164,9 +178,13 @@ export function DataTable<T>({
                       className={edgePaddingClass(colIndex, cols.length)}
                     >
                       <div
-                        className="bg-muted h-4 w-full max-w-28 animate-pulse rounded"
-                        aria-hidden
-                      />
+                        className={cn(
+                          "flex items-center",
+                          col.columnDef.meta?.skeletonClassName ?? "h-5",
+                        )}
+                      >
+                        <Skeleton className="h-4 w-full max-w-28" aria-hidden />
+                      </div>
                     </TableCell>
                   ))}
                 </TableRow>

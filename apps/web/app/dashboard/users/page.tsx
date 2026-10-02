@@ -78,6 +78,9 @@ export default function UsersPage() {
         accessorFn: (row) => `${row.firstName} ${row.lastName} ${row.email}`,
         id: "user",
         header: "User",
+        // Avatar + name/email stack → 36px content; keeps skeleton rows at the
+        // exact loaded row height (default h-5 fits single-line columns).
+        meta: { skeletonClassName: "h-9" },
         cell: (ctx) => <UserCell user={ctx.row.original} />,
       },
       {
