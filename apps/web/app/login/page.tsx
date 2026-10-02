@@ -1,16 +1,17 @@
 "use client"
 
-// Login page — react-hook-form + zod (official resolver).
-// Two-column brand/form layout, responsive and accessible.
+// Login page — single centered minimal form. One orchestrated entrance
+// sequence (staggered fade-rise); reduced motion is respected via
+// MotionConfig, and nothing loops or reacts to hover.
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Eye, EyeOff, Loader2, LogIn, Store } from "lucide-react"
-import { toast } from "sonner"
+import { Eye, EyeOff, Loader2, Store } from "lucide-react"
+import { MotionConfig, motion, type Variants } from "motion/react"
 import { z } from "zod"
 
 import { Button } from "@workspace/ui/components/button"
-import { cn } from "@workspace/ui/lib/utils"
+import { Input } from "@workspace/ui/components/input"
 
 import { login } from "@/lib/auth-session"
 
@@ -20,6 +21,15 @@ const loginSchema = z.object({
 })
 
 type LoginValues = z.infer<typeof loginSchema>
+
+const item: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+  },
+}
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -39,11 +49,9 @@ export default function LoginPage() {
     try {
       const result = await login(values.email, values.password)
       if (!result.ok) {
-        // Structured backend error (ok:false) — e.g. INVALID_CREDENTIALS
         setServerError(result.message || "Sign in failed")
         return
       }
-      toast.success("Welcome back! You are signed in.")
       window.location.assign("/dashboard")
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Network error while signing in")
@@ -51,90 +59,63 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-svh lg:grid-cols-2">
-      {/* Brand panel — desktop only */}
-      <section className="bg-sidebar relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-12">
+    <MotionConfig reducedMotion="user">
+      <main className="relative flex min-h-svh items-center justify-center overflow-hidden p-6">
+        {/* The single ornament: a static, barely-there glow behind the form */}
         <div
           aria-hidden
-          className="from-primary/8 via-primary/4 absolute inset-0 bg-gradient-to-br to-transparent"
+          className="bg-primary/5 absolute left-1/2 top-1/2 size-96 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
         />
-        <div className="relative flex items-center gap-2.5 text-lg font-semibold">
-          <span className="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-xl">
-            <Store className="size-4.5" aria-hidden />
-          </span>
-          <span>Zariny Store Admin</span>
-        </div>
-        <div className="relative space-y-3">
-          <h1 className="text-4xl leading-snug font-bold tracking-tight text-balance">
-            Run your whole store
-            <br />
-            from one place.
-          </h1>
-          <p className="text-muted-foreground max-w-sm leading-7">
-            Products, categories and users — all in one fast, type-safe dashboard.
-          </p>
-        </div>
-        <p className="text-muted-foreground/70 relative text-xs">© 2026 Zariny Store</p>
-      </section>
 
-      {/* Form panel */}
-      <section className="flex items-center justify-center p-6 sm:p-10">
-        <div className="w-full max-w-sm space-y-8">
-          <div className="space-y-2 text-center lg:text-left">
-            <div className="bg-primary text-primary-foreground mx-auto flex size-11 items-center justify-center rounded-xl lg:hidden">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
+          className="relative w-full max-w-xs"
+        >
+          <motion.div variants={item} className="flex flex-col items-center gap-3 text-center">
+            <span className="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-xl">
               <Store className="size-5" aria-hidden />
+            </span>
+            <div className="space-y-1.5">
+              <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+              <p className="text-muted-foreground text-sm">Use your admin account to continue.</p>
             </div>
-            <h2 className="text-2xl font-bold tracking-tight">Sign in to the admin panel</h2>
-            <p className="text-muted-foreground text-sm">
-              Enter your admin account email and password to continue.
-            </p>
-          </div>
+          </motion.div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-            <div className="space-y-2">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-8 flex flex-col gap-5">
+            <motion.div variants={item} className="space-y-2">
               <label htmlFor="email" className="text-sm leading-none font-medium">
                 Email
               </label>
-              <input
+              <Input
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="admin@example.com"
+                placeholder="you@example.com"
                 aria-invalid={!!errors.email}
-                aria-describedby={errors.email ? "email-error" : undefined}
-                className={cn(
-                  "border-input bg-background ring-offset-background placeholder:text-muted-foreground h-10 w-full rounded-lg border px-3 text-sm shadow-xs transition-colors outline-none",
-                  "focus-visible:ring-ring/50 focus-visible:border-ring focus-visible:ring-3",
-                  "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
-                  errors.email && "border-destructive",
-                )}
+                className="h-10"
                 {...register("email")}
               />
               {errors.email && (
-                <p id="email-error" role="alert" className="text-destructive text-xs">
+                <p role="alert" className="text-destructive text-xs">
                   {errors.email.message}
                 </p>
               )}
-            </div>
+            </motion.div>
 
-            <div className="space-y-2">
+            <motion.div variants={item} className="space-y-2">
               <label htmlFor="password" className="text-sm leading-none font-medium">
                 Password
               </label>
               <div className="relative">
-                <input
+                <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="••••••••"
                   aria-invalid={!!errors.password}
-                  aria-describedby={errors.password ? "password-error" : undefined}
-                  className={cn(
-                    "border-input bg-background ring-offset-background placeholder:text-muted-foreground h-10 w-full rounded-lg border px-3 pe-10 text-sm shadow-xs transition-colors outline-none",
-                    "focus-visible:ring-ring/50 focus-visible:border-ring focus-visible:ring-3",
-                    "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
-                    errors.password && "border-destructive",
-                  )}
+                  className="h-10 pe-10"
                   {...register("password")}
                 />
                 <button
@@ -151,32 +132,37 @@ export default function LoginPage() {
                 </button>
               </div>
               {errors.password && (
-                <p id="password-error" role="alert" className="text-destructive text-xs">
+                <p role="alert" className="text-destructive text-xs">
                   {errors.password.message}
                 </p>
               )}
-            </div>
+            </motion.div>
 
             {serverError && (
-              <div
-                role="alert"
-                className="bg-destructive/10 text-destructive flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm"
-              >
+              <motion.p role="alert" variants={item} className="text-destructive text-sm">
                 {serverError}
-              </div>
+              </motion.p>
             )}
 
-            <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <Loader2 className="animate-spin" aria-hidden />
-              ) : (
-                <LogIn aria-hidden data-icon="inline-start" />
-              )}
-              {isSubmitting ? "Signing in…" : "Sign in"}
-            </Button>
+            <motion.div variants={item}>
+              <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 aria-hidden data-icon="inline-start" className="animate-spin" />
+                    Signing in…
+                  </>
+                ) : (
+                  "Sign in"
+                )}
+              </Button>
+            </motion.div>
           </form>
-        </div>
-      </section>
-    </main>
+        </motion.div>
+
+        <footer className="text-muted-foreground/60 absolute bottom-6 text-xs">
+          © 2026 Zariny Store
+        </footer>
+      </main>
+    </MotionConfig>
   )
 }

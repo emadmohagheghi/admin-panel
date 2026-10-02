@@ -50,11 +50,12 @@ export function NavUser({ me }: { me: Me }) {
   const avatarUrl = backendMediaProxyUrl(me.avatar?.url)
 
   async function handleLogout() {
+    // No toast: the redirect to sign-in is the confirmation. Failures are
+    // swallowed — local session state is cleared by the redirect regardless.
     try {
       await logout()
-      toast.success("Signed out successfully")
     } catch {
-      toast.error("Sign out failed")
+      // ignore
     } finally {
       router.replace("/login")
     }
