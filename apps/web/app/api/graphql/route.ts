@@ -20,32 +20,41 @@ import { Agent, fetch as undiciFetch } from "undici"
 const BACKEND_URL = process.env.GRAPHQL_BACKEND_ENDPOINT ?? ""
 
 /**
- * TEMPORARY (development only): the backend currently runs on
- * https://193.228.90.241:7777 with a self-signed certificate, which fetch
- * rejects by default. While that cert is in place, dev proxy requests go
- * through an undici Agent with TLS verification disabled — scoped to ONLY
- * the two backend fetches in this file. This deliberately avoids
- * NODE_TLS_REJECT_UNAUTHORIZED, which would silently weaken TLS for every
- * connection in the process. Production keeps full verification: the agent
- * is not created outside development and must be removed once the backend
- * gets a trusted certificate.
+ * TEMPORARY: the backend currently runs on https://193.228.90.241:7777 with a
+ * self-signed certificate, which fetch rejects by default. While that cert is
+ * in place, requests go through an undici Agent with TLS verification
+ * disabled — scoped to ONLY the two backend fetches in this file.
+ *
+ * Scope of the bypass:
+ * - development: always on (no trusted cert locally either).
+ * - production: only when GRAPHQL_ALLOW_INSECURE_TLS is explicitly set, so
+ *   deploys can work before the backend gets a trusted certificate. This
+ *   leaves Vercel→backend traffic open to MITM; it must be turned off (env
+ *   removed) and this agent deleted once the backend has a trusted cert.
+ * The bypass deliberately avoids NODE_TLS_REJECT_UNAUTHORIZED, which would
+ * silently weaken TLS for every connection in the process.
  */
-const devTlsAgent =
-  process.env.NODE_ENV === "development"
+const allowInsecureTls = ["1", "true"].includes(
+  (process.env.GRAPHQL_ALLOW_INSECURE_TLS ?? "").trim().toLowerCase(),
+)
+
+const relaxedTlsAgent =
+  process.env.NODE_ENV === "development" || allowInsecureTls
     ? new Agent({ connect: { rejectUnauthorized: false } })
     : undefined
 
 /**
- * Backend fetch helper. In development it must use undici's own fetch:
+ * Backend fetch helper. When TLS verification is relaxed (development, or
+ * production with GRAPHQL_ALLOW_INSECURE_TLS) it must use undici's own fetch:
  * Node's global fetch accepts a `dispatcher` option only from its bundled
  * internal undici and throws UND_ERR_INVALID_ARG for a third-party Agent
  * (verified: "global fetch + dispatcher → UND_ERR_INVALID_ARG", while
  * "undici.fetch + dispatcher → 200"). undici's fetch performs no HTTP
- * caching, so the cache option is dropped there; production keeps the
- * global fetch with `cache: "no-store"` and full TLS verification.
+ * caching, so the cache option is dropped there; otherwise the global fetch
+ * with `cache: "no-store"` and full TLS verification is kept.
  */
 async function backendFetch(url: string, init: RequestInit): Promise<Response> {
-  if (!devTlsAgent) return fetch(url, init)
+  if (!relaxedTlsAgent) return fetch(url, init)
   // undici fetch performs no HTTP caching — drop the cache option.
   const rest: RequestInit = { ...init }
   delete (rest as { cache?: unknown }).cache
@@ -53,7 +62,7 @@ async function backendFetch(url: string, init: RequestInit): Promise<Response> {
   // stream identity), so bridge through unknown — runtime shape is compatible.
   return undiciFetch(
     url,
-    { ...rest, dispatcher: devTlsAgent } as unknown as Parameters<typeof undiciFetch>[1],
+    { ...rest, dispatcher: relaxedTlsAgent } as unknown as Parameters<typeof undiciFetch>[1],
   ) as unknown as Response
 }
 
