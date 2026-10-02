@@ -64,7 +64,7 @@ export type DataTableProps<T> = {
   }
   /** Page label to display (optional) */
   pageLabel?: string
-  /** Total record count (shown next to the search box) */
+  /** Total record count (shown in the pagination footer) */
   totalCount?: number | null
   /** Client-side search (current page only) */
   searchValue?: string
@@ -104,24 +104,17 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-3">
-      {(onSearchChange || totalCount != null) && (
+      {onSearchChange && (
         <div className="flex flex-wrap items-center gap-3">
-          {onSearchChange && (
-            <input
-              type="search"
-              role="searchbox"
-              aria-label={searchPlaceholder ?? "Search"}
-              value={searchValue ?? ""}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={searchPlaceholder ?? "Search…"}
-              className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring/50 h-9 w-full max-w-xs rounded-lg border px-3 text-sm shadow-xs transition-colors outline-none focus-visible:border-ring focus-visible:ring-3"
-            />
-          )}
-          {totalCount != null && (
-            <span className="text-muted-foreground text-xs tabular-nums">
-              Total: {totalCount.toLocaleString("en-US")}
-            </span>
-          )}
+          <input
+            type="search"
+            role="searchbox"
+            aria-label={searchPlaceholder ?? "Search"}
+            value={searchValue ?? ""}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder={searchPlaceholder ?? "Search…"}
+            className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring/50 h-9 w-full max-w-xs rounded-lg border px-3 text-sm shadow-xs transition-colors outline-none focus-visible:border-ring focus-visible:ring-3"
+          />
         </div>
       )}
 
@@ -218,31 +211,47 @@ export function DataTable<T>({
 
       {pagination && (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-muted-foreground text-xs">
-            {pageLabel ?? "Server-side cursor pagination"}
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={pagination.onPrevious}
-              disabled={!pagination.hasPreviousPage || loading}
-              aria-label={loading ? "Loading…" : "Go to previous page"}
-            >
-              <ChevronLeft aria-hidden data-icon="inline-start" />
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={pagination.onNext}
-              disabled={!pagination.hasNextPage || loading}
-              aria-label={loading ? "Loading…" : "Go to next page"}
-            >
-              Next
-              <ChevronRight aria-hidden data-icon="inline-end" />
-            </Button>
-          </div>
+          {loading ? (
+            // Skeleton mirrors the loaded footer's heights (h-4 text / h-8 buttons)
+            // so nothing jumps when data arrives.
+            <>
+              <Skeleton className="h-4 w-28" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-8 w-24 rounded-md" />
+                <Skeleton className="h-8 w-20 rounded-md" />
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-muted-foreground text-sm" aria-live="polite">
+                {totalCount != null
+                  ? `${totalCount.toLocaleString("en-US")} ${totalCount === 1 ? "row" : "rows"}`
+                  : pageLabel}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={pagination.onPrevious}
+                  disabled={!pagination.hasPreviousPage}
+                  aria-label="Go to previous page"
+                >
+                  <ChevronLeft aria-hidden data-icon="inline-start" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={pagination.onNext}
+                  disabled={!pagination.hasNextPage}
+                  aria-label="Go to next page"
+                >
+                  Next
+                  <ChevronRight aria-hidden data-icon="inline-end" />
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
