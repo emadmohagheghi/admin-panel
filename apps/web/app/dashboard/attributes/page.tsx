@@ -52,7 +52,7 @@ const UNIT_LABELS: Record<string, string> = {
 }
 
 export default function AttributesPage() {
-  const { cursor, canGoBack, goNext, goBack } = useCursorPagination()
+  const { cursor, canGoBack, goNext, goBack, page } = useCursorPagination()
   // Note: AttributeFilter has no `name` field (schema limitation) — client-side search
   const [search, setSearch] = useState("")
 
@@ -140,12 +140,14 @@ export default function AttributesPage() {
         columns={columns}
         data={filtered}
         loading={fetching && !data}
+        fetching={fetching}
         error={error ? error.message : null}
         onRetry={() => reexecute({ requestPolicy: "network-only" })}
         emptyMessage={search ? "No attributes match your search" : "No attributes yet"}
         pagination={{
           hasNextPage: data?.attributes?.pageInfo.hasNextPage ?? false,
           hasPreviousPage: canGoBack || (data?.attributes?.pageInfo.hasPreviousPage ?? false),
+          page,
           onNext: () => {
             const end = data?.attributes?.pageInfo.endCursor
             if (end) goNext(end)

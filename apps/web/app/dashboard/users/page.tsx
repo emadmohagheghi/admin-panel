@@ -47,7 +47,7 @@ function UserCell({ user }: { user: UserNode }) {
 }
 
 export default function UsersPage() {
-  const { cursor, canGoBack, goNext, goBack } = useCursorPagination()
+  const { cursor, canGoBack, goNext, goBack, page } = useCursorPagination()
   const [search, setSearch] = useState("")
 
   const [{ data, fetching, error }, reexecute] = useQuery({
@@ -141,12 +141,14 @@ export default function UsersPage() {
         columns={columns}
         data={filtered}
         loading={fetching && !data}
+        fetching={fetching}
         error={error ? error.message : null}
         onRetry={() => reexecute({ requestPolicy: "network-only" })}
         emptyMessage={search ? "No users match your search" : "No users yet"}
         pagination={{
           hasNextPage: data?.users?.pageInfo.hasNextPage ?? false,
           hasPreviousPage: canGoBack || (data?.users?.pageInfo.hasPreviousPage ?? false),
+          page,
           onNext: () => {
             const end = data?.users?.pageInfo.endCursor
             if (end) goNext(end)

@@ -3,7 +3,7 @@
 // Generic data table — TanStack Table + loading/error/empty states + cursor pagination.
 // Keep the structure clean (Tailwind classes only, no inline styles) so motion
 // wrappers can be added later.
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   getCoreRowModel,
   getSortedRowModel,
@@ -51,6 +51,9 @@ export type DataTableProps<T> = {
   data: T[]
   /** Initial or background loading state */
   loading: boolean
+  /** Raw in-flight flag (e.g. urql fetching) — powers the page-transition
+   *  skeleton when data is already on screen (Next/Previous clicks) */
+  fetching?: boolean
   error?: string | null
   onRetry?: () => void
   /** Empty state message */
@@ -59,6 +62,8 @@ export type DataTableProps<T> = {
   pagination?: {
     hasNextPage: boolean
     hasPreviousPage: boolean
+    /** 1-based page number, shown between Previous/Next */
+    page?: number
     onNext: () => void
     onPrevious: () => void
   }
@@ -76,6 +81,7 @@ export function DataTable<T>({
   columns,
   data,
   loading,
+  fetching,
   error,
   onRetry,
   emptyMessage,
@@ -87,6 +93,21 @@ export function DataTable<T>({
   searchPlaceholder,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([])
+  /**
+   * Set when the user clicks Next/Previous and cleared once the fetch
+   * settles, so a page transition renders the (height-matched) skeleton
+   * instead of stale rows — while background revalidation never does.
+   */
+  const [pendingNavigation, setPendingNavigation] = useState(false)
+
+  useEffect(() => {
+    if (!fetching) setPendingNavigation(false)
+  }, [fetching])
+
+  const showSkeleton = loading || (pendingNavigation && !!fetching)
+  // Transitions re-skeleton at the current row count so the table height
+  // stays stable; the initial load falls back to 8 rows.
+  const skeletonRowCount = data.length > 0 ? data.length : 8
 
   // React Compiler skips memoizing this component (react-hooks/incompatible-library)
   // — harmless: the table manages its own internal state.
@@ -124,7 +145,7 @@ export function DataTable<T>({
         <Table>
           {/* Screen-reader summary of what this table shows */}
           <caption className="sr-only">
-            {loading ? "Loading data" : table.getRowModel().rows.length === 0 ? emptyMessage : `${data.length} rows`}
+            {showSkeleton ? "Loading data" : table.getRowModel().rows.length === 0 ? emptyMessage : `${data.length} rows`}
           </caption>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -161,9 +182,9 @@ export function DataTable<T>({
             ))}
           </TableHeader>
           <TableBody>
-            {loading ? (
-              // Loading skeleton
-              Array.from({ length: 8 }, (_, i) => (
+            {showSkeleton ? (
+              // Loading skeleton — height-matched to the loaded rows
+              Array.from({ length: skeletonRowCount }, (_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   {table.getAllLeafColumns().map((col, colIndex, cols) => (
                     <TableCell
@@ -211,7 +232,7 @@ export function DataTable<T>({
 
       {pagination && (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          {loading ? (
+          {showSkeleton ? (
             // Skeleton mirrors the loaded footer's heights (h-4 text / h-8 buttons)
             // so nothing jumps when data arrives.
             <>
@@ -232,17 +253,31 @@ export function DataTable<T>({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={pagination.onPrevious}
+                  onClick={() => {
+                    setPendingNavigation(true)
+                    pagination.onPrevious()
+                  }}
                   disabled={!pagination.hasPreviousPage}
                   aria-label="Go to previous page"
                 >
                   <ChevronLeft aria-hidden data-icon="inline-start" />
                   Previous
                 </Button>
+                {pagination.page != null && (
+                  <span
+                    className="text-muted-foreground min-w-20 text-center text-sm tabular-nums"
+                    aria-live="polite"
+                  >
+                    Page {pagination.page}
+                  </span>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={pagination.onNext}
+                  onClick={() => {
+                    setPendingNavigation(true)
+                    pagination.onNext()
+                  }}
                   disabled={!pagination.hasNextPage}
                   aria-label="Go to next page"
                 >

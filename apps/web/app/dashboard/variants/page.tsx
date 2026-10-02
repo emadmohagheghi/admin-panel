@@ -16,7 +16,7 @@ type VariantNode = NonNullable<VariantsListQuery["variants"]>["edges"][number]["
 const PAGE_SIZE = 20
 
 export default function VariantsPage() {
-  const { cursor, canGoBack, goNext, goBack, reset } = useCursorPagination()
+  const { cursor, canGoBack, goNext, goBack, reset, page } = useCursorPagination()
   const [serverSearch, setServerSearch] = useState("")
 
   const [{ data, fetching, error }, reexecute] = useQuery({
@@ -85,12 +85,14 @@ export default function VariantsPage() {
         columns={columns}
         data={variants}
         loading={fetching && !data}
+        fetching={fetching}
         error={error ? error.message : null}
         onRetry={() => reexecute({ requestPolicy: "network-only" })}
         emptyMessage={serverSearch ? "No variants match your search" : "No variants yet"}
         pagination={{
           hasNextPage: data?.variants?.pageInfo.hasNextPage ?? false,
           hasPreviousPage: canGoBack || (data?.variants?.pageInfo.hasPreviousPage ?? false),
+          page,
           onNext: () => {
             const end = data?.variants?.pageInfo.endCursor
             if (end) goNext(end)

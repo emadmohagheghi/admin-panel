@@ -37,6 +37,8 @@ export function useCursorPagination() {
   return {
     cursor: state.cursor,
     canGoBack: state.history.length > 0,
+    /** 1-based page number derived from the cursor history depth */
+    page: state.history.length + 1,
     goNext,
     goBack,
     reset,

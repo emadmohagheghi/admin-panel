@@ -16,7 +16,7 @@ type ClassNode = NonNullable<ProductClassesListQuery["productClasses"]>["edges"]
 const PAGE_SIZE = 20
 
 export default function ProductClassesPage() {
-  const { cursor, canGoBack, goNext, goBack, reset } = useCursorPagination()
+  const { cursor, canGoBack, goNext, goBack, reset, page } = useCursorPagination()
   const [serverSearch, setServerSearch] = useState("")
 
   const [{ data, fetching, error }, reexecute] = useQuery({
@@ -88,12 +88,14 @@ export default function ProductClassesPage() {
         columns={columns}
         data={classes}
         loading={fetching && !data}
+        fetching={fetching}
         error={error ? error.message : null}
         onRetry={() => reexecute({ requestPolicy: "network-only" })}
         emptyMessage={serverSearch ? "No classes match your search" : "No product classes yet"}
         pagination={{
           hasNextPage: data?.productClasses?.pageInfo.hasNextPage ?? false,
           hasPreviousPage: canGoBack || (data?.productClasses?.pageInfo.hasPreviousPage ?? false),
+          page,
           onNext: () => {
             const end = data?.productClasses?.pageInfo.endCursor
             if (end) goNext(end)
