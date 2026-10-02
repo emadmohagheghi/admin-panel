@@ -23,8 +23,14 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
+import { cn } from "@workspace/ui/lib/utils"
 
 import { ErrorBanner } from "@/components/dashboard/error-banner"
+
+/** Edge padding for the first/last column, matching the members-table design */
+function edgePaddingClass(index: number, count: number): string {
+  return cn(index === 0 && "ps-4", index === count - 1 && "pe-4")
+}
 
 export type DataTableProps<T> = {
   columns: ColumnDef<T, unknown>[]
@@ -107,7 +113,7 @@ export function DataTable<T>({
 
       <ErrorBanner error={error} onRetry={onRetry} toastPrefix="Failed to load data" />
 
-      <div className="border-border/60 overflow-hidden rounded-xl border">
+      <div className="bg-card shadow-xs overflow-hidden rounded-xl border">
         <Table>
           {/* Screen-reader summary of what this table shows */}
           <caption className="sr-only">
@@ -116,12 +122,13 @@ export function DataTable<T>({
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
+                {headerGroup.headers.map((header, headerIndex) => {
                   const sortable = header.column.getCanSort()
                   const sorted = header.column.getIsSorted()
                   return (
                     <TableHead
                       key={header.id}
+                      className={edgePaddingClass(headerIndex, headerGroup.headers.length)}
                       aria-sort={
                         sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined
                       }
@@ -151,8 +158,11 @@ export function DataTable<T>({
               // Loading skeleton
               Array.from({ length: 8 }, (_, i) => (
                 <TableRow key={`skeleton-${i}`}>
-                  {table.getAllLeafColumns().map((col) => (
-                    <TableCell key={col.id}>
+                  {table.getAllLeafColumns().map((col, colIndex, cols) => (
+                    <TableCell
+                      key={col.id}
+                      className={edgePaddingClass(colIndex, cols.length)}
+                    >
                       <div
                         className="bg-muted h-4 w-full max-w-28 animate-pulse rounded"
                         aria-hidden
@@ -173,8 +183,11 @@ export function DataTable<T>({
             ) : (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                  {row.getVisibleCells().map((cell, cellIndex, cells) => (
+                    <TableCell
+                      key={cell.id}
+                      className={edgePaddingClass(cellIndex, cells.length)}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

@@ -7,9 +7,10 @@ import { useQuery } from "urql"
 import type { ColumnDef } from "@tanstack/react-table"
 import { UsersListDocument, type UsersListQuery } from "@workspace/graphql"
 
-import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
 import { DataTable } from "@/components/dashboard/data-table"
+import { backendMediaProxyUrl } from "@/lib/backend-media"
 import { useCursorPagination } from "@/hooks/use-cursor-pagination"
 import { formatDateTime } from "@/lib/format"
 
@@ -24,11 +25,9 @@ function UserCell({ user }: { user: UserNode }) {
     <div className="flex items-center gap-2.5">
       <Avatar className="size-7">
         {user.avatar?.url ? (
-          // eslint-disable-next-line @next/next/no-img-element -- image hosts are not fixed
-          <img src={user.avatar.url} alt="" className="size-full object-cover" />
-        ) : (
-          <AvatarFallback className="text-xs">{initial}</AvatarFallback>
-        )}
+          <AvatarImage src={backendMediaProxyUrl(user.avatar.url) ?? undefined} alt="" />
+        ) : null}
+        <AvatarFallback className="text-xs">{initial}</AvatarFallback>
       </Avatar>
       {user.onlineStatus && <span className="sr-only">Online</span>}
       <span
