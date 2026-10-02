@@ -11,60 +11,17 @@
 //    domain cookies never leak outward.
 // 4) Backend Set-Cookie headers have their Domain attribute stripped before
 //    being forwarded so the browser accepts them for our own domain.
+// 5) The response handed to the browser is ALWAYS a JSON body: urql
+//    JSON-parses anything whose content-type is not text/*, so backend HTML
+//    error pages or truncated bodies would surface to the user as an opaque
+//    "Unexpected end of JSON input". Non-JSON upstream responses are wrapped
+//    into a GraphQL errors payload with a readable message instead.
 //
 // Why a Route Handler instead of rewrites? Django rejects foreign Referer
 // headers on HTTPS (verified: POST with a localhost Referer → 403 CSRF check).
 import { NextRequest, NextResponse } from "next/server"
-import { Agent, fetch as undiciFetch } from "undici"
 
-const BACKEND_URL = process.env.GRAPHQL_BACKEND_ENDPOINT ?? ""
-
-/**
- * TEMPORARY: the backend currently runs on https://193.228.90.241:7777 with a
- * self-signed certificate, which fetch rejects by default. While that cert is
- * in place, requests go through an undici Agent with TLS verification
- * disabled — scoped to ONLY the two backend fetches in this file.
- *
- * Scope of the bypass:
- * - development: always on (no trusted cert locally either).
- * - production: only when GRAPHQL_ALLOW_INSECURE_TLS is explicitly set, so
- *   deploys can work before the backend gets a trusted certificate. This
- *   leaves Vercel→backend traffic open to MITM; it must be turned off (env
- *   removed) and this agent deleted once the backend has a trusted cert.
- * The bypass deliberately avoids NODE_TLS_REJECT_UNAUTHORIZED, which would
- * silently weaken TLS for every connection in the process.
- */
-const allowInsecureTls = ["1", "true"].includes(
-  (process.env.GRAPHQL_ALLOW_INSECURE_TLS ?? "").trim().toLowerCase(),
-)
-
-const relaxedTlsAgent =
-  process.env.NODE_ENV === "development" || allowInsecureTls
-    ? new Agent({ connect: { rejectUnauthorized: false } })
-    : undefined
-
-/**
- * Backend fetch helper. When TLS verification is relaxed (development, or
- * production with GRAPHQL_ALLOW_INSECURE_TLS) it must use undici's own fetch:
- * Node's global fetch accepts a `dispatcher` option only from its bundled
- * internal undici and throws UND_ERR_INVALID_ARG for a third-party Agent
- * (verified: "global fetch + dispatcher → UND_ERR_INVALID_ARG", while
- * "undici.fetch + dispatcher → 200"). undici's fetch performs no HTTP
- * caching, so the cache option is dropped there; otherwise the global fetch
- * with `cache: "no-store"` and full TLS verification is kept.
- */
-async function backendFetch(url: string, init: RequestInit): Promise<Response> {
-  if (!relaxedTlsAgent) return fetch(url, init)
-  // undici fetch performs no HTTP caching — drop the cache option.
-  const rest: RequestInit = { ...init }
-  delete (rest as { cache?: unknown }).cache
-  // undici's RequestInit type differs slightly from the global one (body
-  // stream identity), so bridge through unknown — runtime shape is compatible.
-  return undiciFetch(
-    url,
-    { ...rest, dispatcher: relaxedTlsAgent } as unknown as Parameters<typeof undiciFetch>[1],
-  ) as unknown as Response
-}
+import { BACKEND_URL, backendFetch } from "@/lib/backend"
 
 /** Session cookie name for the proxy.ts gate (Django default) */
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? "access"
@@ -126,13 +83,12 @@ function sanitizeSetCookie(cookie: string): string {
     .join("; ")
 }
 
+function jsonError(message: string, status: number): NextResponse {
+  return NextResponse.json({ errors: [{ message }] }, { status })
+}
+
 function ensureConfigured(): NextResponse | null {
-  if (!BACKEND_URL) {
-    return NextResponse.json(
-      { errors: [{ message: "GRAPHQL_BACKEND_ENDPOINT is not configured" }] },
-      { status: 500 },
-    )
-  }
+  if (!BACKEND_URL) return jsonError("GRAPHQL_BACKEND_ENDPOINT is not configured", 500)
   return null
 }
 
@@ -171,56 +127,55 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const csrf = await fetchFreshCsrfToken()
-  if (!csrf) {
-    return NextResponse.json({ errors: [{ message: "Failed to fetch csrftoken" }] }, { status: 502 })
-  }
+  try {
+    const csrf = await fetchFreshCsrfToken()
+    if (!csrf) return jsonError("Failed to fetch csrftoken", 502)
 
-  const res = NextResponse.json({ ok: true })
-  res.cookies.set("csrftoken", csrf, {
-    path: "/",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 365,
-  })
-  return res
+    const res = NextResponse.json({ ok: true })
+    res.cookies.set("csrftoken", csrf, {
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365,
+    })
+    return res
+  } catch (err) {
+    return jsonError(
+      `Backend unreachable: ${err instanceof Error ? err.message : "unknown error"}`,
+      502,
+    )
+  }
 }
 
 /**
- * POST: forward the query/mutation to the backend with full CSRF handling.
- * Whitelisted browser cookies travel to the backend and backend Set-Cookies
- * (session/rotation) come back to the browser.
+ * Forward the JSON payload to the backend with full CSRF handling.
+ * `csrfOverride` supplies a freshly bootstrapped token (stale-token retry).
  */
-export async function POST(request: NextRequest) {
-  const notConfigured = ensureConfigured()
-  if (notConfigured) return notConfigured
+async function forwardPost(
+  browserCookieHeader: string,
+  payload: string,
+  csrfOverride?: string,
+): Promise<Response> {
+  let csrf = csrfOverride ?? readCookie(browserCookieHeader, "csrftoken")
+  // Drop the browser's csrftoken from the forwarded cookies — the token in
+  // the X-CSRFToken header below is the authoritative one, and Django's
+  // double-submit check fails if a stale cookie value doesn't match it.
+  const backendCookieHeader = buildBackendCookieHeader(browserCookieHeader)
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => part && !/^csrftoken=/i.test(part))
+    .join("; ")
 
-  // Only JSON GraphQL payloads are proxied
-  const contentType = request.headers.get("content-type") ?? ""
-  if (!contentType.includes("application/json")) {
-    return NextResponse.json(
-      { errors: [{ message: "Only Content-Type: application/json is accepted" }] },
-      { status: 415 },
-    )
-  }
-
-  const browserCookieHeader = request.headers.get("cookie") ?? ""
-  let csrf = readCookie(browserCookieHeader, "csrftoken")
-  let backendCookieHeader = buildBackendCookieHeader(browserCookieHeader)
-
-  // If the browser has no csrftoken, fetch one and use it in this request
+  // If neither the browser nor the caller provided a token, bootstrap one
   if (!csrf) {
     csrf = await fetchFreshCsrfToken()
-    if (!csrf) {
-      return NextResponse.json({ errors: [{ message: "Failed to fetch csrftoken" }] }, { status: 502 })
-    }
-    backendCookieHeader = backendCookieHeader
-      ? `${backendCookieHeader}; csrftoken=${csrf}`
-      : `csrftoken=${csrf}`
+    if (!csrf) throw new Error("Failed to fetch csrftoken")
   }
+  const cookieWithCsrf = backendCookieHeader
+    ? `${backendCookieHeader}; csrftoken=${csrf}`
+    : `csrftoken=${csrf}`
 
-  const payload = await request.text()
-  const backendRes = await backendFetch(BACKEND_URL, {
+  return backendFetch(BACKEND_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -229,24 +184,82 @@ export async function POST(request: NextRequest) {
       // Referer must match the backend URL: Django's CSRF check on HTTPS
       // rejects foreign Referer headers.
       Referer: BACKEND_URL,
-      Cookie: backendCookieHeader,
+      Cookie: cookieWithCsrf,
     },
     body: payload,
     cache: "no-store",
   })
+}
 
-  const body = await backendRes.text()
-  const res = new NextResponse(body, {
-    status: backendRes.status,
-    headers: {
-      "Content-Type": backendRes.headers.get("content-type") ?? "application/json",
+/**
+ * Convert the backend response into what the browser should receive:
+ * a non-empty JSON body passes through untouched; anything else (HTML error
+ * pages, empty bodies, non-JSON content) becomes a valid GraphQL errors
+ * payload so the client always shows a readable message. Backend Set-Cookies
+ * (session/rotation) are still forwarded with the Domain attribute stripped.
+ */
+async function buildProxyResponse(backendRes: Response): Promise<NextResponse> {
+  const rawBody = await backendRes.text()
+  const contentType = backendRes.headers.get("content-type") ?? ""
+  const isJsonBody = /application\/json/i.test(contentType) && rawBody.trim() !== ""
+
+  const res = new NextResponse(
+    isJsonBody
+      ? rawBody
+      : JSON.stringify({
+          errors: [
+            {
+              message: `Backend returned a non-JSON response (${backendRes.status} ${
+                backendRes.statusText || contentType || "empty body"
+              })`,
+            },
+          ],
+        }),
+    {
+      status: backendRes.status,
+      headers: { "Content-Type": "application/json" },
     },
-  })
+  )
 
-  // Forward backend cookies (session/refresh/csrftoken rotation) to the browser
-  // with the Domain attribute stripped so the browser accepts them
   for (const cookie of getSetCookies(backendRes.headers)) {
     res.headers.append("set-cookie", sanitizeSetCookie(cookie))
   }
   return res
+}
+
+/**
+ * POST: forward the query/mutation to the backend.
+ * A stale browser csrftoken makes Django answer 403 with an HTML page (and a
+ * rotated token); in that case bootstrap a fresh token server-side and retry
+ * once before giving up, so expiring cookies heal themselves silently.
+ */
+export async function POST(request: NextRequest) {
+  const notConfigured = ensureConfigured()
+  if (notConfigured) return notConfigured
+
+  // Only JSON GraphQL payloads are proxied
+  const contentType = request.headers.get("content-type") ?? ""
+  if (!contentType.includes("application/json")) {
+    return jsonError("Only Content-Type: application/json is accepted", 415)
+  }
+
+  const payload = await request.text()
+  const browserCookieHeader = request.headers.get("cookie") ?? ""
+
+  try {
+    let backendRes = await forwardPost(browserCookieHeader, payload)
+    if (
+      backendRes.status === 403 &&
+      /text\/html/i.test(backendRes.headers.get("content-type") ?? "")
+    ) {
+      const fresh = await fetchFreshCsrfToken()
+      if (fresh) backendRes = await forwardPost(browserCookieHeader, payload, fresh)
+    }
+    return await buildProxyResponse(backendRes)
+  } catch (err) {
+    return jsonError(
+      `Backend unreachable: ${err instanceof Error ? err.message : "unknown error"}`,
+      502,
+    )
+  }
 }
