@@ -28,7 +28,7 @@ mutation RefreshSession {
   }
 }
 
-# کاربر جاری — برای تشخیص سشن معتبر در محافظت از روت‌ها
+# کاربر جاری — برای تشخیص سشن معتبر در محافظت از روت‌ها و صفحه پروفایل
 # توجه: فیلدهای id و isSuperuser پشت پرمیشن‌های GROUP_MANAGER و
 # CHECK_SUPERUSER_STATUS قفل‌اند (تست‌شده) و درخواست نمی‌شوند.
 query Me {
@@ -40,6 +40,8 @@ query Me {
     isActive
     isConfirmed
     languageCode
+    dateJoined
+    lastLogin
     avatar {
       url
     }
