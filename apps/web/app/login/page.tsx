@@ -61,10 +61,11 @@ export default function LoginPage() {
   return (
     <MotionConfig reducedMotion="user">
       <main className="relative flex min-h-svh items-center justify-center overflow-hidden p-6">
-        {/* The single ornament: a static, barely-there glow behind the form */}
+        {/* The single ornament: a static, barely-there glow behind the form.
+            pointer-events: none so it never swallows clicks. */}
         <div
           aria-hidden
-          className="bg-primary/5 absolute left-1/2 top-1/2 size-96 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
+          className="bg-primary/5 pointer-events-none absolute left-1/2 top-1/2 size-96 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
         />
 
         <motion.div
@@ -78,8 +79,10 @@ export default function LoginPage() {
               <Store className="size-5" aria-hidden />
             </span>
             <div className="space-y-1.5">
-              <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
-              <p className="text-muted-foreground text-sm">Use your admin account to continue.</p>
+              <h1 className="text-2xl font-semibold tracking-tight text-balance">Sign in</h1>
+              <p className="text-muted-foreground text-sm text-pretty">
+                Use your admin account to continue.
+              </p>
             </div>
           </motion.div>
 
@@ -94,11 +97,12 @@ export default function LoginPage() {
                 autoComplete="email"
                 placeholder="you@example.com"
                 aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
                 className="h-10"
                 {...register("email")}
               />
               {errors.email && (
-                <p role="alert" className="text-destructive text-xs">
+                <p role="alert" id="email-error" className="text-destructive text-xs">
                   {errors.email.message}
                 </p>
               )}
@@ -109,30 +113,54 @@ export default function LoginPage() {
                 Password
               </label>
               <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  aria-invalid={!!errors.password}
-                  className="h-10 pe-10"
-                  {...register("password")}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  {showPassword ? (
-                    <EyeOff className="size-4" aria-hidden />
-                  ) : (
-                    <Eye className="size-4" aria-hidden />
-                  )}
-                </button>
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                placeholder="••••••••"
+                aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? "password-error" : undefined}
+                className="h-10 pe-10"
+                {...register("password")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                {/* Crossfade per the icon-swap rule: outgoing icon fades/blurs
+                    out while the incoming one scales in */}
+                <span className="relative grid size-4 place-items-center">
+                  <motion.span
+                    aria-hidden
+                    className="absolute"
+                    animate={{
+                      opacity: showPassword ? 0 : 1,
+                      scale: showPassword ? 0.25 : 1,
+                      filter: showPassword ? "blur(4px)" : "blur(0px)",
+                    }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Eye className="size-4" />
+                  </motion.span>
+                  <motion.span
+                    aria-hidden
+                    className="absolute"
+                    animate={{
+                      opacity: showPassword ? 1 : 0,
+                      scale: showPassword ? 1 : 0.25,
+                      filter: showPassword ? "blur(0px)" : "blur(4px)",
+                    }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <EyeOff className="size-4" />
+                  </motion.span>
+                </span>
+              </button>
               </div>
               {errors.password && (
-                <p role="alert" className="text-destructive text-xs">
+                <p role="alert" id="password-error" className="text-destructive text-xs">
                   {errors.password.message}
                 </p>
               )}

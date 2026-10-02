@@ -114,14 +114,14 @@ export default function UsersPage() {
         accessorKey: "lastLogin",
         header: "Last login",
         cell: (ctx) => (
-          <span className="text-muted-foreground text-xs">{formatDateTime(ctx.row.original.lastLogin)}</span>
+          <span className="text-muted-foreground text-xs tabular-nums">{formatDateTime(ctx.row.original.lastLogin)}</span>
         ),
       },
       {
         accessorKey: "dateJoined",
         header: "Joined",
         cell: (ctx) => (
-          <span className="text-muted-foreground text-xs">{formatDateTime(ctx.row.original.dateJoined)}</span>
+          <span className="text-muted-foreground text-xs tabular-nums">{formatDateTime(ctx.row.original.dateJoined)}</span>
         ),
       },
     ],

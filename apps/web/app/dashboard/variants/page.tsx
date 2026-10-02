@@ -65,7 +65,7 @@ export default function VariantsPage() {
         accessorKey: "updatedAt",
         header: "Updated",
         cell: (ctx) => (
-          <span className="text-muted-foreground text-xs">{formatDateTime(ctx.row.original.updatedAt)}</span>
+          <span className="text-muted-foreground text-xs tabular-nums">{formatDateTime(ctx.row.original.updatedAt)}</span>
         ),
       },
     ],

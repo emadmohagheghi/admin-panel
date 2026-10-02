@@ -129,6 +129,10 @@
   * {
     @apply border-border outline-ring/50;
     }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    }
   body {
     @apply bg-background text-foreground;
     }

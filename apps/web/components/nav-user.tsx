@@ -74,7 +74,9 @@ export function NavUser({ me }: { me: Me }) {
           {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
           <AvatarFallback className="text-xs">{initials}</AvatarFallback>
         </Avatar>
-        <span className="hidden max-w-40 truncate sm:inline">{displayName}</span>
+        <span className="hidden max-w-40 truncate sm:inline" title={displayName}>
+          {displayName}
+        </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuGroup>
@@ -84,8 +86,12 @@ export function NavUser({ me }: { me: Me }) {
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <span className="block truncate font-medium text-foreground">{displayName}</span>
-              <div className="text-muted-foreground truncate text-xs">{me.email ?? "—"}</div>
+              <span className="block truncate font-medium text-foreground" title={displayName}>
+                {displayName}
+              </span>
+              <div className="text-muted-foreground truncate text-xs" title={me.email ?? undefined}>
+                {me.email ?? "—"}
+              </div>
             </div>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
