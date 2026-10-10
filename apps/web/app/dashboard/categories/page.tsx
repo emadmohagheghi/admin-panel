@@ -1,10 +1,9 @@
 "use client"
 
-// Categories page — root tree with lazy-expanding children + server-side search.
-// The backend offers rootCategories (paginated) and children lists per node, or
-// a flat categories() list with server-side name filtering. We show the tree
-// view by default; searching switches to the flat filtered list (cursor-
-// paginated, so search results feel infinite without loading 139 nodes at once).
+// Categories page — recursive tree with lazy-expanding children + server-side search.
+// Roots preload two levels; deeper levels lazy-load per node via CategoryDetail,
+// so the tree renders to any depth with continuous guide lines per level.
+// Searching switches to the flat filtered list (cursor-paginated).
 import { useMemo, useState } from "react"
 import { useQuery } from "urql"
 import { ChevronDown, ChevronRight, FolderOpen, List, Search, TreeDeciduous } from "lucide-react"
@@ -17,15 +16,63 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import {
   CategoriesListDocument,
+  CategoryDetailDocument,
   RootCategoriesTreeDocument,
-  type RootCategoriesTreeQuery,
+  type CategoryDetailQuery,
 } from "@workspace/graphql"
 
 import { ErrorBanner } from "@/components/dashboard/error-banner"
 import { formatDateTime } from "@/lib/format"
 
-type RootNode = NonNullable<RootCategoriesTreeQuery["rootCategories"]>["edges"][number]["node"]
-type ChildNode = RootNode["children"][number]
+type DetailChild = Extract<CategoryDetailQuery["node"], { __typename: "CategoryType" }>["children"][number]
+
+// Minimal structural shape for preloaded children at any depth (root children
+// carry description + nested children; grandchildren are shallower).
+type PreloadedEntry = {
+  id: string
+  name: string
+  slug: string
+  isPublic: boolean
+  numchild: number
+  children?: PreloadedEntry[] | null
+}
+
+// Normalized tree node — `children` is set only when actually loaded; deeper
+// levels lazy-load via CategoryDetail on expand, so the tree renders to any depth.
+type TreeNodeData = {
+  id: string
+  name: string
+  slug: string
+  isPublic: boolean
+  numchild: number
+  updatedAt?: string | null
+  children?: TreeNodeData[]
+}
+
+function normalizePreloaded(children: PreloadedEntry[]): TreeNodeData[] {
+  return children.map((c) => {
+    const kids = normalizePreloaded(c.children ?? [])
+    return {
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      isPublic: c.isPublic,
+      numchild: c.numchild,
+      children: kids.length > 0 ? kids : undefined,
+    }
+  })
+}
+
+function normalizeDetail(children: DetailChild[]): TreeNodeData[] {
+  return children.map((c) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    isPublic: c.isPublic,
+    numchild: c.numchild,
+    children: undefined,
+  }))
+}
 
 function PublicBadge({ isPublic }: { isPublic: boolean }) {
   return (
@@ -78,39 +125,83 @@ function NameCell({
   )
 }
 
-// One row of a category — leaf rows are static; parents expand inline.
-function TreeRow({
-  node,
-  depth,
-}: {
-  node: { name: string; slug: string; isPublic: boolean; numchild: number; children?: ChildNode[]; updatedAt?: string | null }
-  depth: number
-}) {
+// Vertical guide lines — one per ancestor level (LTR: lines grow leftward as
+// depth grows). Rendered as a direct stretched child of the row so the line
+// spans the row's full height (including padding) and joins seamlessly with
+// the rows above and below into one continuous spine, like the reference.
+function DepthGuides({ depth }: { depth: number }) {
+  if (depth === 0) return null
+  return (
+    <span className="flex shrink-0 items-stretch self-stretch" aria-hidden>
+      {Array.from({ length: depth }, (_, i) => (
+        <span key={i} className="flex w-5 items-stretch justify-center">
+          <span className="border-border border-s border-dashed" />
+        </span>
+      ))}
+    </span>
+  )
+}
+
+// One recursive tree node — expands inline; children come from the preloaded
+// query when available, otherwise they lazy-load via CategoryDetail on expand.
+function TreeNode({ node, depth }: { node: TreeNodeData; depth: number }) {
   const [expanded, setExpanded] = useState(false)
-  const children = node.children ?? []
+  const preloaded = node.children
+  const hasChildren = node.numchild > 0
+
+  const [{ data: detailData, fetching: detailFetching }] = useQuery({
+    query: CategoryDetailDocument,
+    variables: { id: node.id },
+    pause: !expanded || preloaded !== undefined || !hasChildren,
+  })
+  const detailNode =
+    detailData?.node?.__typename === "CategoryType" ? detailData.node : null
+  const children = preloaded ?? (detailNode ? normalizeDetail(detailNode.children) : [])
 
   return (
     <>
       <div
+        role="treeitem"
+        aria-level={depth + 1}
+        aria-expanded={hasChildren ? expanded : undefined}
+        aria-label={`${node.name} (level ${depth + 1})`}
         className={cn(
-          "hover:bg-muted/40 flex items-center justify-between gap-3 px-3 py-2.5",
+          "hover:bg-muted/40 flex items-stretch justify-between gap-3 px-3",
           depth === 0 && "border-b last:border-b-0 first:border-t",
         )}
       >
-        <NameCell
-          node={node}
-          depth={depth}
-          expanded={expanded}
-          hasChildren={children.length > 0}
-          onToggle={() => setExpanded((v) => !v)}
-        />
+        <DepthGuides depth={depth} />
+        <div className="flex min-w-0 flex-1 items-center py-2.5">
+          <div className="flex min-w-0 items-center gap-1.5">
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                aria-expanded={expanded}
+                aria-label={expanded ? `Collapse ${node.name}` : `Expand ${node.name}`}
+                className="text-muted-foreground hover:text-foreground hover:bg-accent -m-1 flex size-5 shrink-0 items-center justify-center rounded-sm outline-none focus-visible:ring-3"
+              >
+                <ChevronDown
+                  className={cn("size-3.5 transition-transform duration-200", !expanded && "-rotate-90")}
+                  aria-hidden
+                />
+              </button>
+            ) : (
+              <span className="size-5 shrink-0" aria-hidden />
+            )}
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{node.name}</p>
+              <p className="text-muted-foreground truncate font-mono text-xs">{node.slug}</p>
+            </div>
+          </div>
+        </div>
         <div className="flex shrink-0 items-center gap-2">
           {node.updatedAt && (
             <span className="text-muted-foreground hidden text-xs tabular-nums sm:inline">
               {formatDateTime(node.updatedAt)}
             </span>
           )}
-          {node.numchild > 0 && (
+          {hasChildren && (
             <span className="text-muted-foreground text-xs tabular-nums">
               {node.numchild} sub
             </span>
@@ -118,33 +209,39 @@ function TreeRow({
           <PublicBadge isPublic={node.isPublic} />
         </div>
       </div>
-      {expanded && <ChildrenRows parent={node} childrenNodes={children} depth={depth + 1} />}
+      {/* Smooth expand/collapse: grid-rows animates height; content stays
+      mounted while open so lazy-loaded children don't refetch on re-open. */}
+      <div
+        className={cn(
+          "bg-muted/20 grid transition-[grid-template-rows] duration-200 ease-out",
+          expanded && hasChildren ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+        role="group"
+        aria-label={`Subcategories of ${node.name}`}
+        aria-hidden={!expanded || !hasChildren}
+      >
+        <div className="min-h-0 overflow-hidden">
+          {detailFetching && preloaded === undefined ? (
+            <div className="flex items-stretch px-3">
+              <DepthGuides depth={depth + 1} />
+              <div className="flex items-center gap-2 py-2.5">
+                <Skeleton className="h-4 w-40" aria-hidden />
+                <span className="text-muted-foreground text-xs">Loading…</span>
+              </div>
+            </div>
+          ) : children.length > 0 ? (
+            children.map((child) => <TreeNode key={child.id} node={child} depth={depth + 1} />)
+          ) : (
+            expanded && (
+              <div className="flex items-stretch px-3">
+                <DepthGuides depth={depth + 1} />
+                <span className="text-muted-foreground py-2.5 text-xs">No subcategories found</span>
+              </div>
+            )
+          )}
+        </div>
+      </div>
     </>
-  )
-}
-
-// Expanded children rows (the tree ships two levels nested; deeper levels are
-// rare and shown as leaf placeholders until a nested detail view is needed).
-function ChildrenRows({
-  parent,
-  childrenNodes,
-  depth,
-}: {
-  parent: { name: string }
-  childrenNodes: ChildNode[]
-  depth: number
-}) {
-  if (childrenNodes.length === 0) return null
-  return (
-    <div className="bg-muted/20" role="group" aria-label={`Subcategories of ${parent.name}`}>
-      {childrenNodes.map((child) => (
-        <TreeRow
-          key={child.id}
-          node={{ ...child, children: undefined, updatedAt: undefined }}
-          depth={depth}
-        />
-      ))}
-    </div>
   )
 }
 
@@ -169,7 +266,22 @@ export default function CategoriesPage() {
     pause: mode !== "search",
   })
 
-  const roots = useMemo(() => (treeData?.rootCategories?.edges ?? []).map((e) => e.node), [treeData])
+  const roots = useMemo<TreeNodeData[]>(
+    () =>
+      (treeData?.rootCategories?.edges ?? []).map((e) => ({
+        id: e.node.id,
+        name: e.node.name,
+        slug: e.node.slug,
+        isPublic: e.node.isPublic,
+        numchild: e.node.numchild,
+        updatedAt: e.node.updatedAt,
+        children: (() => {
+          const kids = normalizePreloaded(e.node.children ?? [])
+          return kids.length > 0 ? kids : undefined
+        })(),
+      })),
+    [treeData],
+  )
   const listRows = useMemo(() => (listData?.categories?.edges ?? []).map((e) => e.node), [listData])
 
   const error = mode === "tree" ? treeError : listError
@@ -261,7 +373,7 @@ export default function CategoriesPage() {
         ) : mode === "tree" ? (
           <div role="tree" aria-label="Category tree">
             {roots.map((root) => (
-              <TreeRow key={root.id} node={root} depth={0} />
+              <TreeNode key={root.id} node={root} depth={0} />
             ))}
             {roots.length === 0 && (
               <div className="text-muted-foreground py-16 text-center text-sm">No categories yet</div>
@@ -301,7 +413,7 @@ export default function CategoriesPage() {
       {mode === "tree" && (
         <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-center text-xs">
           <FolderOpen className="size-3.5" aria-hidden />
-          Click a category to expand its subcategories
+          Click a category to expand — children load on demand, the continuous guide lines show the depth
         </p>
       )}
     </div>
