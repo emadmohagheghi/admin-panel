@@ -87,6 +87,18 @@ function jsonError(message: string, status: number): NextResponse {
   return NextResponse.json({ errors: [{ message }] }, { status })
 }
 
+/** Flatten `fetch failed` + its `cause` chain so prod logs/UI show the real reason. */
+function describeFetchError(err: unknown): string {
+  if (!(err instanceof Error)) return "unknown error"
+  const parts = [err.message]
+  let cause: unknown = (err as { cause?: unknown }).cause
+  while (cause instanceof Error && parts.length < 4) {
+    parts.push(cause.message)
+    cause = (cause as { cause?: unknown }).cause
+  }
+  return parts.join(" ← ")
+}
+
 function ensureConfigured(): NextResponse | null {
   if (!BACKEND_URL) return jsonError("GRAPHQL_BACKEND_ENDPOINT is not configured", 500)
   return null
@@ -140,10 +152,8 @@ export async function GET(request: NextRequest) {
     })
     return res
   } catch (err) {
-    return jsonError(
-      `Backend unreachable: ${err instanceof Error ? err.message : "unknown error"}`,
-      502,
-    )
+    console.error("GraphQL proxy GET failed:", describeFetchError(err))
+    return jsonError(`Backend unreachable: ${describeFetchError(err)}`, 502)
   }
 }
 
@@ -257,9 +267,7 @@ export async function POST(request: NextRequest) {
     }
     return await buildProxyResponse(backendRes)
   } catch (err) {
-    return jsonError(
-      `Backend unreachable: ${err instanceof Error ? err.message : "unknown error"}`,
-      502,
-    )
+    console.error("GraphQL proxy POST failed:", describeFetchError(err))
+    return jsonError(`Backend unreachable: ${describeFetchError(err)}`, 502)
   }
 }
