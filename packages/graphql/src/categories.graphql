@@ -1,8 +1,53 @@
 # ---------- دسته‌بندی‌ها ----------
-# نکته: CategoryType فیلد parent ندارد؛ والد از طریق ancestors (آخرین عضو) قابل استخراج است.
-# همچنین کوئری تکی category(id) در اسکیما نیست — جزئیات با node(id) گرفته می‌شود.
+# پرمیشن‌ها (تست‌شده زنده با اکانت سرویس، ۱۰ اکتبر ۲۰۲۶): همه فیلدهای
+# CategoryType باز شدند + rootCategories در دسترس است. نکته‌ها:
+# - CategoryType فیلد parent ندارد؛ ساختار درختی با rootCategories +
+#   children (لیست ساده، هر عمق) ساخته می‌شود.
+# - کوئری تکی category(id) در اسکیما نیست؛ جزئیات با node(id) گرفته می‌شود.
+# - سقف صفحه‌بندی سرور ۲۰ است و ordering سمت سرور فقط
+#   hierarchy/updatedAt قابل استفاده است؛ مرتب‌سازی اختصاصی عمدتاً سمت کلاینت است.
 
-# لیست دسته‌بندی‌ها با فیلتر، مرتب‌سازی و صفحه‌بندی cursor
+# ریشه‌های درخت دسته‌بندی + فرزندان تا دو عمق (برای صفحه درختی)
+query RootCategoriesTree($first: Int = 20, $after: String) {
+  rootCategories(first: $first, after: $after) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        name
+        slug
+        isPublic
+        description
+        updatedAt
+        numchild
+        children {
+          id
+          name
+          slug
+          isPublic
+          description
+          numchild
+          children {
+            id
+            name
+            slug
+            isPublic
+            numchild
+          }
+        }
+      }
+    }
+  }
+}
+
+# لیست تخت دسته‌بندی‌ها با فیلتر سروری (جستجوی سروری name/slug) و صفحه‌بندی cursor
 query CategoriesList(
   $first: Int
   $after: String

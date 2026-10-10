@@ -1,6 +1,7 @@
 # ---------- کاتالوگ: واریانت، کلاس محصول، ویژگی ----------
-# نکته‌ی پرمیشن (تست‌شده با اکانت واقعی): فیلد id در این مدل‌ها قفل است
-# (GROUP_MANAGER)؛ بقیه‌ی فیلدهای زیر باز است.
+# پرمیشن‌ها (تست‌شده زنده با اکانت سرویس، ۱۰ اکتبر ۲۰۲۶): همه فیلدهای
+# ProductType و روابطش باز شدند (قبلاً id قفل بود)؛ در Variants/Classes/
+# Attributes همه فیلدها هم از قبل باز بودند.
 
 # لیست واریانت‌ها با فیلتر سروری (sku/name) و صفحه‌بندی cursor
 query VariantsList($first: Int, $after: String, $filters: ProductVariantFilter) {
@@ -68,6 +69,156 @@ query AttributesList($first: Int, $after: String, $filters: AttributeFilter) {
         valueRequired
         variantOnly
         unit
+      }
+    }
+  }
+}
+
+# ---------- محصولات ----------
+# پرمیشن‌ها (تست‌شده zنده با اکانت سرویس، ۱۰ اکتبر ۲۰۲۶): همه فیلدهای
+# ProductType و روابطش باز شدند (قبلاً id قفل بود). یادداشت‌ها:
+# - سقف صفحه‌بندی سرور ۲۰ است (first > 20 خطا می‌دهد) و ordering سمت سرور
+#   روی products وجود ندارد؛ list pages از createdAt DESC به‌صورت cursor جلو می‌روند.
+# - detail: از node(id) استفاده می‌کنیم، چون product(id) در اسکیما نیست.
+
+# لیست محصولات با فیلتر سروری و صفحه‌بندی cursor
+query ProductsList($first: Int, $after: String, $filters: ProductFilter) {
+  products(first: $first, after: $after, filters: $filters) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        title
+        slug
+        isPublic
+        description
+        createdAt
+        updatedAt
+        productType {
+          title
+          slug
+        }
+        categories {
+          id
+          name
+          slug
+        }
+        variants(first: 5) {
+          totalCount
+          edges {
+            node {
+              sku
+              name
+            }
+          }
+        }
+        medias(first: 1) {
+          edges {
+            node {
+              sortOrder
+              caption
+              image {
+                url
+                width
+                height
+              }
+            }
+          }
+        }
+        attributes {
+          sortOrder
+          attribute {
+            name
+          }
+          value {
+            label
+            value
+            dataType
+          }
+        }
+      }
+    }
+  }
+}
+
+# جزئیات محصول با node(id) — شامل ترجمه‌ها، متادیتا و تمام واریانت‌ها
+query ProductDetail($id: ID!) {
+  node(id: $id) {
+    __typename
+    ... on ProductType {
+      id
+      title
+      slug
+      isPublic
+      description
+      metaTitle
+      metaDescription
+      metadata
+      createdAt
+      updatedAt
+      productType {
+        title
+        slug
+        requireShipping
+        trackStock
+      }
+      categories {
+        id
+        name
+        slug
+      }
+      variants(first: 20) {
+        totalCount
+        edges {
+          node {
+            sku
+            name
+            trackInventory
+            sortOrder
+            createdAt
+            updatedAt
+          }
+        }
+      }
+      medias(first: 20) {
+        totalCount
+        edges {
+          node {
+            sortOrder
+            caption
+            published
+            image {
+              url
+              width
+              height
+              size
+            }
+          }
+        }
+      }
+      attributes {
+        sortOrder
+        attribute {
+          name
+          slug
+          inputType
+        }
+        value {
+          label
+          value
+          plainText
+          numeric
+          boolean
+          dateTime
+          dataType
+        }
       }
     }
   }
