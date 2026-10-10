@@ -28,6 +28,7 @@
     "react-hook-form": "^7.89.0",
     "recharts": "3.8.0",
     "sonner": "^2.0.8",
+    "undici": "^8.11.2",
     "urql": "^5.0.4",
     "zod": "^4.4.3"
   },

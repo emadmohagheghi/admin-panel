@@ -56,7 +56,7 @@ pnpm codegen
 
 ## Known backend limitations
 
-- **Trusted TLS required** — the GraphQL/media proxies use strict TLS verification in every environment (dev and production alike). The backend must serve `GRAPHQL_BACKEND_ENDPOINT` with a publicly trusted certificate (domain + Let's Encrypt, not bare-IP self-signed), otherwise login fails with `Backend unreachable: fetch failed`.
+- **Self-signed TLS (temporary)** — the backend runs on `https://193.228.90.241:7777` with a self-signed certificate. The GraphQL/media proxies talk to it through a scoped undici `Agent` with verification disabled (dev always; production only when `GRAPHQL_ALLOW_INSECURE_TLS=1`). Set that env on production until the backend gets a trusted cert, then remove it and the bypass.
 - **Test endpoint trap** — `/graphql/` serves an empty schema (`Query.test` only). The real dashboard API lives at `/dashboard/graphql/`.
 - **Locked fields** — the service account lacks `GROUP_MANAGER` / `CATALOGUE_MANAGER` / `PERMISSION_MANAGER` / `CHECK_SUPERUSER_STATUS`: `id` is locked on most models, and `categories` / `permissions` lists are fully locked. Queries omit locked fields; tables key rows by index.
 - **Products access changed** — `products` is now readable (previously locked behind `GROUP_MANAGER`) with only `id` locked; `totalCount` = 151.

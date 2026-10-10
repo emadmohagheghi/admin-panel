@@ -1,7 +1,8 @@
 // Same-origin proxy for backend media files (e.g. user avatars).
 //
 // Media URLs are rewritten to this route, which fetches the file server-side
-// through the shared backendFetch helper with full TLS verification.
+// through the shared backendFetch helper (scoped TLS bypass while the
+// backend is self-signed).
 //
 // Only paths under /media/ are proxied and traversal segments are rejected;
 // everything else is 404 so this can't become an open proxy to the backend.

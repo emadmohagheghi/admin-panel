@@ -2,8 +2,8 @@
 // برای هر مدل: یک کوئری با همه‌ی فیلدها → فیلدهای مجاز از data و
 // فیلدهای قفل‌شده از path خطاها استخراج می‌شوند.
 // ایمیل‌ها ماسک می‌شوند؛ هیچ مقدار حساسی چاپ یا ذخیره نمی‌شود.
-// اجرا: node scripts/probe-model-permissions.mjs [backend-url]
-// (بک‌اند باید گواهی معتبر داشته باشد؛ هیچ بای‌پس TLS در کار نیست)
+// اجرا: NODE_TLS_REJECT_UNAUTHORIZED=0 node scripts/probe-model-permissions.mjs [backend-url]
+// (گواهی بک‌اند self-signed است؛ این متغیر فقط داخل همین پروسه‌ی یک‌بارمصرف است)
 // پیش‌فرض: GRAPHQL_BACKEND_ENDPOINT از apps/web/.env.local خوانده می‌شود.
 import fs from "node:fs"
 import path from "node:path"
