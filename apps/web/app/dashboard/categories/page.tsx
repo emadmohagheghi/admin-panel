@@ -192,7 +192,7 @@ export default function CategoriesPage() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-xs">
           <Search
-            className="text-muted-foreground pointer-events-none absolute inset-y-0 start-3 size-4"
+            className="text-muted-foreground pointer-events-none absolute top-1/2 start-3 size-4 -translate-y-1/2"
             aria-hidden
           />
           <Input
