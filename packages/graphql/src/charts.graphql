@@ -1,0 +1,61 @@
+# ---------- نمودارهای داشبورد (Overview) ----------
+# هر چهار MovingWindow یک DateChart برمی‌گردانند: seriesها (key/label) + bucketها
+# که points هر bucket با seriesKey به series وصل می‌شود. metadata فعلاً JSON
+# آزاد است و خوانده می‌شود تا وقتی قراردادش با بکند مشخص شد استفاده شود.
+fragment DateChartFields on DateChart {
+  title
+  generatedAt
+  granularity
+  metadata
+  series {
+    key
+    label
+  }
+  buckets {
+    key
+    label
+    start
+    end
+    total
+    points {
+      seriesKey
+      value
+    }
+  }
+}
+
+query UserJoinedChart {
+  userJoinedMovingWindow {
+    ...DateChartFields
+  }
+}
+
+query CompleteOrdersChart {
+  completeOrderMovingWindow {
+    ...DateChartFields
+  }
+}
+
+query BasketStatusChart {
+  basketStatusMovingWindow {
+    ...DateChartFields
+  }
+}
+
+query OrderStatusChart {
+  orderStatusMovingWindow {
+    ...DateChartFields
+  }
+}
+
+# ده دسته‌بندی برتر: خطوط ساده‌ی label/num
+query TopCategoriesChart {
+  topTenCategoriesChart {
+    title
+    generatedAt
+    lines {
+      label
+      num
+    }
+  }
+}

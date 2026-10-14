@@ -1,12 +1,19 @@
 "use client"
 
-// Overview page — stat cards backed by the DashboardStats query.
+// Overview page — stat cards backed by the DashboardStats query,
+// plus the backend-driven charts (DateChart moving windows + top categories).
 // Categories were removed because even its totalCount is permission-locked.
 import { useQuery } from "urql"
 import { Layers, Package, Users } from "lucide-react"
 import { DashboardStatsDocument } from "@workspace/graphql"
 
 import { Card, CardContent } from "@workspace/ui/components/card"
+
+import { BasketStatusChart } from "@/components/charts/basket-status-chart"
+import { CompleteOrdersChart } from "@/components/charts/complete-orders-chart"
+import { OrderStatusChart } from "@/components/charts/order-status-chart"
+import { TopCategoriesChart } from "@/components/charts/top-categories-chart"
+import { UserJoinedChart } from "@/components/charts/user-joined-chart"
 
 const STATS = [
   { key: "products", label: "Products", icon: Package, href: "/dashboard/products" },
@@ -67,6 +74,14 @@ export default function DashboardOverviewPage() {
             </Card>
           )
         })}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <UserJoinedChart />
+        <CompleteOrdersChart />
+        <BasketStatusChart />
+        <OrderStatusChart />
+        <TopCategoriesChart className="xl:col-span-2" />
       </div>
     </div>
   )

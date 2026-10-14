@@ -1,6 +1,7 @@
 type Query {
   categories(filters: CategoryFilterType, ordering: [CategoryOrderType!]! = [], before: String = null, after: String = null, first: Int = null, last: Int = null): CategoryTypeCursorConnection!
   rootCategories(filters: CategoryFilterType, ordering: [CategoryOrderType!]! = [], before: String = null, after: String = null, first: Int = null, last: Int = null): CategoryTypeCursorConnection!
+  topTenCategoriesChart: SimpleChart!
   products(filters: ProductFilter, before: String = null, after: String = null, first: Int = null, last: Int = null): ProductTypeCursorConnection!
   product(id: ID!): ProductType!
   productClasses(filters: ProductClassFilter, before: String = null, after: String = null, first: Int = null, last: Int = null): ProductClassTypeCursorConnection!
@@ -12,6 +13,10 @@ type Query {
   groups(before: String = null, after: String = null, first: Int = null, last: Int = null): GroupTypeCursorConnection!
   group(id: ID!): GroupType!
   me: UserType
+  userJoinedMovingWindow: DateChart!
+  basketStatusMovingWindow: DateChart!
+  orderStatusMovingWindow: DateChart!
+  completeOrderMovingWindow: DateChart!
   _fieldPermissions(typeName: String = null, fieldName: String = null): [PermissionMetadataType!]!
   node(id: ID!): Node!
   nodes(ids: [ID!]!): [Node!]!
@@ -569,6 +574,22 @@ type CategoryTranslationType implements Node & TranslationModelType & BaseSeoMod
   description: String
 }
 
+type SimpleChart implements ChartAndPlotType {
+  title: String
+  generatedAt: DateTime!
+  lines: [NumericPoint!]!
+}
+
+interface ChartAndPlotType {
+  title: String
+  generatedAt: DateTime!
+}
+
+type NumericPoint {
+  label: String!
+  num: Int!
+}
+
 type ProductClassTypeCursorConnection {
   pageInfo: PageInfo!
   edges: [ProductClassTypeCursorEdge!]!
@@ -649,6 +670,7 @@ type GroupType implements Node {
 
 input UserFilterType {
   id: GlobalIDFilterLookup
+  email: StrFilterLookup
   isActive: BoolBaseFilterLookup
   isConfirmed: BoolBaseFilterLookup
   isSuperuser: BoolBaseFilterLookup
@@ -675,6 +697,44 @@ type GroupTypeCursorConnection {
 type GroupTypeCursorEdge {
   cursor: String!
   node: GroupType!
+}
+
+type DateChart implements ChartAndPlotType & MetaDataType {
+  title: String
+  generatedAt: DateTime!
+  metadata: JSON
+  granularity: Granularity!
+  series: [SeriesMeta!]!
+  buckets: [Bucket!]!
+}
+
+interface MetaDataType {
+  metadata: JSON
+}
+
+enum Granularity {
+  DAY
+  WEEK
+  MONTH
+}
+
+type SeriesMeta {
+  key: String!
+  label: String!
+}
+
+type Bucket {
+  key: String!
+  label: String!
+  start: DateTime!
+  end: DateTime!
+  total: Int!
+  points: [DataPoint!]!
+}
+
+type DataPoint {
+  seriesKey: String!
+  value: Int!
 }
 
 type PermissionMetadataType {
