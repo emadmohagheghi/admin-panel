@@ -20,7 +20,7 @@ export type DateSeries = {
   /** Backend series key (e.g. an order status) */
   key: string
   label: string
-  color: string
+  color: ThemePair
 }
 
 export type DateRow = {
@@ -29,38 +29,50 @@ export type DateRow = {
   total: number
 } & Record<string, number | string>
 
-const BLUE = "#7da8d9"
-const VIOLET = "#8b8fd4"
-const AMBER = "#bea065"
-const CYAN = "#5eb6b2"
-const RED = "#d3937a"
-const GREEN = "#76b590"
+// Colors are evilcharts' own official palette (from their docs examples):
+// tailwind-500 for light mode, tailwind-400 for dark — passed as explicit
+// light/dark pairs so each mode renders its native variant.
+type ThemePair = { light: string; dark: string }
+
+const EVIL_BLUE: ThemePair = { light: "#3b82f6", dark: "#60a5fa" }
+const EVIL_EMERALD: ThemePair = { light: "#10b981", dark: "#34d399" }
+const EVIL_AMBER: ThemePair = { light: "#f59e0b", dark: "#fbbf24" }
+const EVIL_VIOLET: ThemePair = { light: "#8b5cf6", dark: "#a78bfa" }
+const EVIL_ROSE: ThemePair = { light: "#be123c", dark: "#f43f5e" }
+const EVIL_GRAY: ThemePair = { light: "#6b7280", dark: "#9ca3af" }
+
+const CATEGORY_PALETTE: ThemePair[] = [
+  EVIL_BLUE,
+  EVIL_EMERALD,
+  EVIL_AMBER,
+  EVIL_VIOLET,
+  EVIL_ROSE,
+  EVIL_GRAY,
+]
 
 /** Primary accent for single-series charts (areas, top categories). */
-export const CHART_BLUE = BLUE
-
-const CATEGORY_PALETTE = [BLUE, VIOLET, AMBER, CYAN, RED, GREEN]
+export const CHART_ACCENT: ThemePair = EVIL_BLUE
 
 function normalizeKey(key: string): string {
   return key.toLowerCase().replace(/[\s_-]+/g, "")
 }
 
-/** Semantic color for known status keys; null when the key is unfamiliar. */
-function semanticColor(key: string): string | null {
+/** Semantic color pair for known status keys; null when unfamiliar. */
+function semanticColor(key: string): ThemePair | null {
   const k = normalizeKey(key)
-  if (k.includes("cancel")) return RED
-  if (k.includes("pending")) return AMBER
-  if (k.includes("complet") || k.includes("submit")) return GREEN
-  if (k.includes("being") || k.includes("process")) return BLUE
-  if (k.includes("open")) return BLUE
-  if (k.includes("merg")) return VIOLET
-  if (k.includes("sav")) return AMBER
-  if (k.includes("froz")) return CYAN
+  if (k.includes("cancel")) return EVIL_ROSE
+  if (k.includes("pending")) return EVIL_AMBER
+  if (k.includes("complet") || k.includes("submit")) return EVIL_EMERALD
+  if (k.includes("being") || k.includes("process")) return EVIL_BLUE
+  if (k.includes("open")) return EVIL_BLUE
+  if (k.includes("merg")) return EVIL_VIOLET
+  if (k.includes("sav")) return EVIL_AMBER
+  if (k.includes("froz")) return EVIL_GRAY
   return null
 }
 
-export function colorForSeriesKey(key: string, index: number): string {
-  return semanticColor(key) ?? CATEGORY_PALETTE[index % CATEGORY_PALETTE.length] ?? BLUE
+export function colorForSeriesKey(key: string, index: number): ThemePair {
+  return semanticColor(key) ?? CATEGORY_PALETTE[index % CATEGORY_PALETTE.length] ?? EVIL_BLUE
 }
 
 export function toDateSeries(chart: DateChartData): DateSeries[] {
@@ -108,7 +120,7 @@ export function toDateRows(chart: DateChartData, series: DateSeries[]): DateRow[
 export function buildSeriesConfig(series: DateSeries[]): ChartConfig {
   const config: ChartConfig = {}
   for (const s of series) {
-    config[s.id] = { label: s.label, colors: { light: [s.color], dark: [s.color] } }
+    config[s.id] = { label: s.label, colors: { light: [s.color.light], dark: [s.color.dark] } }
   }
   return config
 }

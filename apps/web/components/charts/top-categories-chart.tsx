@@ -13,12 +13,12 @@ import { Card } from "@workspace/ui/components/card"
 import { EChartsBarChart, type ChartConfig } from "@/components/evilcharts/charts/echarts-bar-chart"
 import { ErrorBanner } from "@/components/dashboard/error-banner"
 import { ChartCard, ChartEmpty, ChartSkeleton } from "@/components/charts/chart-card"
-import { CHART_BLUE, resolveTitle } from "@/components/charts/date-chart-utils"
+import { CHART_ACCENT, resolveTitle } from "@/components/charts/date-chart-utils"
 
 const chartConfig = {
   num: {
     label: "Count",
-    colors: { light: [CHART_BLUE], dark: [CHART_BLUE] },
+    colors: { light: [CHART_ACCENT.light], dark: [CHART_ACCENT.dark] },
   },
 } satisfies ChartConfig
 
