@@ -12,14 +12,20 @@ import { RefreshSessionDocument } from "@workspace/graphql"
 
 import { GRAPHQL_PROXY_PATH } from "@/lib/urql-env"
 
-/** Is this error an auth error? (backend's standard message for forbidden ops) */
+/** Is this error an auth error? (must stay in sync with isAuthErrorText in lib/auth-session)
+ * Matches the skill's needsRefresh (/permission|authenticated|anonymous|unauthorized/i):
+ * an expired access cookie surfaces as an anonymous-user permission error
+ * (e.g. "... DASHBOARD_ACCESS"), not HTTP 401 — treat it as "refresh once". */
 function isAuthError(message: string): boolean {
   const m = message.toLowerCase()
   return (
     m.includes("does not have access") ||
+    m.includes("permission") ||
+    m.includes("dashboard_access") ||
     m.includes("unauthorized") ||
+    m.includes("authenticated") ||
     m.includes("authentication") ||
-    m.includes("not authenticated")
+    m.includes("anonymous")
   )
 }
 

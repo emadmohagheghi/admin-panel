@@ -39,14 +39,21 @@ export function graphQLErrorMessage(err: CombinedError | undefined): string {
   return err.graphQLErrors[0]?.message ?? err.networkError?.message ?? "Unknown error"
 }
 
-/** Is this an auth error? (must stay in sync with isAuthError in lib/urql) */
+/** Is this an auth error? (must stay in sync with isAuthError in lib/urql)
+ * Matches the skill's needsRefresh (/permission|authenticated|anonymous|unauthorized/i):
+ * an expired access cookie surfaces as an anonymous-user permission error
+ * (e.g. "... DASHBOARD_ACCESS"), not HTTP 401 — treat it as "not signed in"
+ * so the gate refreshes/redirects instead of showing a dead-session error. */
 function isAuthErrorText(message: string): boolean {
   const m = message.toLowerCase()
   return (
     m.includes("does not have access") ||
+    m.includes("permission") ||
+    m.includes("dashboard_access") ||
     m.includes("unauthorized") ||
+    m.includes("authenticated") ||
     m.includes("authentication") ||
-    m.includes("not authenticated")
+    m.includes("anonymous")
   )
 }
 
