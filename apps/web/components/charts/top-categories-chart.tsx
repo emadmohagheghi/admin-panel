@@ -49,6 +49,7 @@ export function TopCategoriesChart({ className, ...props }: ComponentProps<typeo
           config={chartConfig}
           xDataKey="label"
           layout="horizontal"
+          animation={false}
           className="h-80 w-full"
         >
           <EChartsBarChart.Grid />

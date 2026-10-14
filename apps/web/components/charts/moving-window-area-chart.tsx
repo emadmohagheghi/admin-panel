@@ -60,6 +60,7 @@ export function MovingWindowAreaChart({
           config={config}
           xDataKey="x"
           curveType="natural"
+          animation={false}
           className="h-72 w-full"
         >
           <EChartsAreaChart.Grid />

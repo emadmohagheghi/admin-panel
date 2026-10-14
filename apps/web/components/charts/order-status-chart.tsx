@@ -55,6 +55,7 @@ export function OrderStatusChart({ className, ...props }: ComponentProps<typeof 
           config={config}
           xDataKey="x"
           stackType="stacked"
+          animation={false}
           className="h-72 w-full"
         >
           <EChartsBarChart.Grid />
