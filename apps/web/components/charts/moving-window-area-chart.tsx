@@ -1,28 +1,20 @@
 "use client"
 
 // Generic datetime area chart for the backend's DateChart payloads
-// (userJoined / completeOrder moving windows). Series and buckets are fully
-// dynamic — one Area per series entry, colors cycled from the theme palette.
+// (userJoined / completeOrder moving windows), rendered with evilcharts
+// (Apache ECharts). Series and buckets are fully dynamic — one Area per
+// series entry, colors resolved through the evilcharts ChartConfig.
 // Data fetching lives in the thin wrappers; this component only renders.
-import { useId, useMemo, type ComponentProps } from "react"
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { useMemo, type ComponentProps } from "react"
 
 import { Card } from "@workspace/ui/components/card"
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@workspace/ui/components/chart"
 
+import { EChartsAreaChart } from "@/components/evilcharts/charts/echarts-area-chart"
 import { ErrorBanner } from "@/components/dashboard/error-banner"
 import { ChartCard, ChartEmpty, ChartSkeleton } from "@/components/charts/chart-card"
 import {
   buildSeriesConfig,
   chartDescription,
-  chartTooltipLabel,
-  formatBucketTick,
   resolveTitle,
   toDateRows,
   toDateSeries,
@@ -46,14 +38,11 @@ export function MovingWindowAreaChart({
   className,
   ...props
 }: MovingWindowAreaChartProps) {
-  const uid = useId().replace(/:/g, "")
-
   const series = useMemo(() => (chart ? toDateSeries(chart) : []), [chart])
   const rows = useMemo(() => (chart ? toDateRows(chart, series) : []), [chart, series])
   const config = useMemo(() => buildSeriesConfig(series), [series])
 
   const title = resolveTitle(chart?.title, fallbackTitle)
-  const granularity = chart?.granularity ?? "DAY"
 
   return (
     <ChartCard
@@ -66,62 +55,22 @@ export function MovingWindowAreaChart({
       {!errorMessage && (fetching && rows.length === 0 ? <ChartSkeleton /> : null)}
       {!errorMessage && !fetching && rows.length === 0 && <ChartEmpty />}
       {!errorMessage && rows.length > 0 && (
-        <ChartContainer className="aspect-22/8 w-full" config={config}>
-          <AreaChart accessibilityLayer data={rows} margin={{ left: 4, right: 8, top: 8, bottom: 0 }}>
-            <defs>
-              {series.map((s) => (
-                <linearGradient id={`${uid}-${s.id}`} key={s.id} x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor={s.color} stopOpacity={0.45} />
-                  <stop offset="55%" stopColor={s.color} stopOpacity={0.12} />
-                  <stop offset="100%" stopColor={s.color} stopOpacity={0} />
-                </linearGradient>
-              ))}
-            </defs>
-            <CartesianGrid className="stroke-border" vertical={false} />
-            <XAxis
-              axisLine={false}
-              dataKey="x"
-              interval="preserveStartEnd"
-              minTickGap={24}
-              tickFormatter={(value) => formatBucketTick(String(value), granularity, rows.length)}
-              tickLine={false}
-              tickMargin={8}
-            />
-            <YAxis
-              axisLine={false}
-              allowDecimals={false}
-              tick={{ className: "tabular-nums" }}
-              tickLine={false}
-              tickMargin={8}
-              width={36}
-            />
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  className="min-w-34"
-                  indicator="line"
-                  labelFormatter={(_, payload) => {
-                    const row = payload?.[0]?.payload as { x?: string; end?: string } | undefined
-                    return chart ? chartTooltipLabel(chart, { x: row?.x ?? "", end: row?.end }) : ""
-                  }}
-                />
-              }
-              cursor={false}
-            />
-            {series.map((s) => (
-              <Area
-                key={s.id}
-                dataKey={s.id}
-                dot={false}
-                fill={`url(#${uid}-${s.id})`}
-                stroke={s.color}
-                strokeWidth={2}
-                type="natural"
-              />
-            ))}
-            {series.length > 1 && <ChartLegend content={<ChartLegendContent />} />}
-          </AreaChart>
-        </ChartContainer>
+        <EChartsAreaChart
+          data={rows}
+          config={config}
+          xDataKey="x"
+          curveType="natural"
+          className="h-72 w-full"
+        >
+          <EChartsAreaChart.Grid />
+          <EChartsAreaChart.XAxis dataKey="x" />
+          <EChartsAreaChart.YAxis />
+          <EChartsAreaChart.Tooltip />
+          {series.length > 1 && <EChartsAreaChart.Legend />}
+          {series.map((s) => (
+            <EChartsAreaChart.Area key={s.id} dataKey={s.id} variant="gradient" />
+          ))}
+        </EChartsAreaChart>
       )}
     </ChartCard>
   )

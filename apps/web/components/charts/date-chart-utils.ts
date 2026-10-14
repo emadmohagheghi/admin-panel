@@ -3,16 +3,19 @@
 // holds `points` that join back to a series via `seriesKey`. Series keys come
 // from the backend (status names etc.) so everything here stays dynamic:
 // dataKeys are safe synthetic ids (`s0`, `s1`, …) while labels/colors resolve
-// through the shadcn ChartConfig.
-import type { ChartConfig } from "@workspace/ui/components/chart"
+// through the evilcharts ChartConfig.
+//
+// Colors are explicit hex pairs (same both modes): the app theme is
+// intentionally monochrome, which would render every series in gray.
+import type { ChartConfig } from "@/components/evilcharts/ui/echarts-chart"
 import type { DateChartFieldsFragment } from "@workspace/graphql"
 
-import { DASHBOARD_LOCALE, formatChartAxisTick, formatChartTooltipDate, formatDate } from "@/components/formater"
+import { formatChartAxisTick, formatDate } from "@/components/formater"
 
 export type DateChartData = DateChartFieldsFragment
 
 export type DateSeries = {
-  /** Safe synthetic dataKey used in recharts (`s0`, …) */
+  /** Safe synthetic dataKey used in echarts (`s0`, …) */
   id: string
   /** Backend series key (e.g. an order status) */
   key: string
@@ -21,23 +24,17 @@ export type DateSeries = {
 }
 
 export type DateRow = {
-  /** ISO day (`YYYY-MM-DD`) derived from the bucket start — axis value */
+  /** Pre-formatted category label for the axis/tooltip (granularity-aware) */
   x: string
-  /** ISO day of the bucket end (for WEEK/MONTH range tooltips) */
-  end: string
   total: number
 } & Record<string, number | string>
 
-// The app theme is intentionally monochrome (all --chart-* are chroma 0),
-// which renders every series in gray. Charts need distinguishable series, so
-// they carry their own categorical palette (oklch hues readable in both
-// light and dark mode) plus semantic colors for known status keys.
-const BLUE = "oklch(0.62 0.19 255)"
-const VIOLET = "oklch(0.62 0.2 305)"
-const AMBER = "oklch(0.74 0.16 80)"
-const CYAN = "oklch(0.7 0.14 195)"
-const RED = "oklch(0.63 0.2 25)"
-const GREEN = "oklch(0.68 0.16 160)"
+const BLUE = "#3b82f6"
+const VIOLET = "#8b5cf6"
+const AMBER = "#f59e0b"
+const CYAN = "#06b6d4"
+const RED = "#ef4444"
+const GREEN = "#22c55e"
 
 const CATEGORY_PALETTE = [BLUE, VIOLET, AMBER, CYAN, RED, GREEN]
 
@@ -72,12 +69,34 @@ export function toDateSeries(chart: DateChartData): DateSeries[] {
   }))
 }
 
-/** Buckets → recharts rows. Missing series points default to 0. */
+/**
+ * X category per granularity. DAY buckets use the weekday/day-month
+ * heuristic; WEEK buckets show the week start ("Sep 14") and MONTH buckets
+ * the month ("Sep ’26") — never a bare weekday repeated for every bucket.
+ */
+export function formatBucketX(day: string, granularity: string, bucketCount: number): string {
+  if (granularity === "WEEK") return formatDate(day, "day-month")
+  if (granularity === "MONTH") {
+    return new Date(`${day}T12:00:00`).toLocaleDateString("en-US", {
+      month: "short",
+      year: "2-digit",
+    })
+  }
+  return formatChartAxisTick(day, bucketCount)
+}
+
+/** Buckets → chart rows. `x` is the pre-formatted category label
+ * (evilcharts tooltips show the raw x value, so it must be display-ready).
+ * Missing series points default to 0. */
 export function toDateRows(chart: DateChartData, series: DateSeries[]): DateRow[] {
-  return (chart.buckets ?? []).map((b) => {
+  const buckets = chart.buckets ?? []
+  return buckets.map((b) => {
     const day = (b.start ?? "").slice(0, 10) || b.label || b.key
     const values = new Map((b.points ?? []).map((p) => [p.seriesKey, p.value]))
-    const row: DateRow = { x: day, end: (b.end ?? "").slice(0, 10), total: b.total ?? 0 }
+    const row: DateRow = {
+      x: formatBucketX(day, chart.granularity, buckets.length),
+      total: b.total ?? 0,
+    }
     for (const s of series) row[s.id] = values.get(s.key) ?? 0
     return row
   })
@@ -85,7 +104,9 @@ export function toDateRows(chart: DateChartData, series: DateSeries[]): DateRow[
 
 export function buildSeriesConfig(series: DateSeries[]): ChartConfig {
   const config: ChartConfig = {}
-  for (const s of series) config[s.id] = { label: s.label, color: s.color }
+  for (const s of series) {
+    config[s.id] = { label: s.label, colors: { light: [s.color], dark: [s.color] } }
+  }
   return config
 }
 
@@ -106,34 +127,6 @@ export function chartDescription(chart: DateChartData): string {
   const n = chart.buckets?.length ?? 0
   const noun = granularityNoun(chart.granularity)
   return `${n} ${noun}${n === 1 ? "" : "s"} · per ${noun}`
-}
-
-/**
- * X-axis tick per granularity. DAY buckets use the weekday/day-month
- * heuristic; WEEK buckets show the week start ("Sep 14") and MONTH buckets
- * the month ("Sep ’26") — never a bare weekday repeated for every bucket.
- */
-export function formatBucketTick(day: string, granularity: string, bucketCount: number): string {
-  if (granularity === "WEEK") return formatDate(day, "day-month")
-  if (granularity === "MONTH") {
-    return new Date(`${day}T12:00:00`).toLocaleDateString(DASHBOARD_LOCALE, {
-      month: "short",
-      year: "2-digit",
-    })
-  }
-  return formatChartAxisTick(day, bucketCount)
-}
-
-/** Tooltip headline: a start–end range for WEEK/MONTH, a full date for DAY. */
-export function chartTooltipLabel(chart: DateChartData, row: { x: string; end?: string }): string {
-  if (
-    (chart.granularity === "WEEK" || chart.granularity === "MONTH") &&
-    row.end &&
-    row.end !== row.x
-  ) {
-    return `${formatDate(row.x, "day-month")} – ${formatDate(row.end, "day-month")}`
-  }
-  return row.x ? formatChartTooltipDate(row.x, "long") : ""
 }
 
 const PLACEHOLDER_TITLES = /^(some title|title|test( title)?|demo|untitled|lorem( ipsum)?|sample)$/i
@@ -176,7 +169,7 @@ export function exactPercentShares(values: number[]): number[] {
  * the same group; unknown future statuses fall into their own "other" stack.
  */
 export function orderStatusStackGroup(key: string): string {
-  const k = key.toLowerCase().replace(/[\s_-]+/g, "")
+  const k = normalizeKey(key)
   if (k.includes("cancel") || k.includes("pending")) return "pending"
   if (k.includes("complet") || k.includes("being") || k.includes("process")) return "processing"
   return "other"

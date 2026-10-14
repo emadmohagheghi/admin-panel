@@ -11,7 +11,8 @@
   },
   "iconLibrary": "lucide",
   "registries": {
-    "@efferd": "https://efferd.com/r/{style}/{name}.json"
+    "@efferd": "https://efferd.com/r/{style}/{name}.json",
+    "@evilcharts": "https://evilcharts.com/r/{name}.json"
   },
   "aliases": {
     "components": "@/components",
