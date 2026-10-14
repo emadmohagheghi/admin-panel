@@ -20,11 +20,15 @@ import {
 } from "@workspace/ui/components/chart"
 
 import { ErrorBanner } from "@/components/dashboard/error-banner"
-import { formatChartAxisTick, formatChartTooltipDate, formatInteger } from "@/components/formater"
+import { formatInteger } from "@/components/formater"
 import { ChartCard, ChartEmpty, ChartSkeleton } from "@/components/charts/chart-card"
 import {
   buildSeriesConfig,
   chartDescription,
+  chartTooltipLabel,
+  exactPercentShares,
+  formatBucketTick,
+  resolveTitle,
   toDateSeries,
   type DateChartData,
   type DateRow,
@@ -36,12 +40,15 @@ function toPercentRows(chart: DateChartData) {
   const rows = (chart.buckets ?? []).map((b) => {
     const day = (b.start ?? "").slice(0, 10) || b.label || b.key
     const total = b.total ?? 0
-    const row: DateRow = { x: day, total }
-    for (const s of series) {
-      const v = (b.points ?? []).find((p) => p.seriesKey === s.key)?.value ?? 0
-      row[s.id] = total > 0 ? Math.round((v / total) * 1000) / 10 : 0
-      row[`${s.id}__count`] = v
-    }
+    const row: DateRow = { x: day, end: (b.end ?? "").slice(0, 10), total }
+    const values = series.map(
+      (s) => (b.points ?? []).find((p) => p.seriesKey === s.key)?.value ?? 0,
+    )
+    const shares = exactPercentShares(values)
+    series.forEach((s, i) => {
+      row[s.id] = shares[i] ?? 0
+      row[`${s.id}__count`] = values[i] ?? 0
+    })
     return row
   })
   return { rows, series }
@@ -56,7 +63,8 @@ export function BasketStatusChart({ className, ...props }: ComponentProps<typeof
     [chart],
   )
   const config = useMemo(() => buildSeriesConfig(series), [series])
-  const title = chart?.title || "Basket status"
+  const title = resolveTitle(chart?.title, "Basket status")
+  const granularity = chart?.granularity ?? "DAY"
 
   return (
     <ChartCard
@@ -83,18 +91,19 @@ export function BasketStatusChart({ className, ...props }: ComponentProps<typeof
               dataKey="x"
               interval="preserveStartEnd"
               minTickGap={24}
-              tickFormatter={(value) => formatChartAxisTick(String(value), rows.length)}
+              tickFormatter={(value) => formatBucketTick(String(value), granularity, rows.length)}
               tickLine={false}
               tickMargin={8}
             />
             <YAxis
               axisLine={false}
               domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
               tick={{ className: "tabular-nums" }}
               tickFormatter={(value) => `${Number(value)}%`}
               tickLine={false}
               tickMargin={8}
-              width={44}
+              width={48}
             />
             <ChartTooltip
               content={
@@ -103,7 +112,7 @@ export function BasketStatusChart({ className, ...props }: ComponentProps<typeof
                   indicator="line"
                   labelFormatter={(_, payload) => {
                     const row = payload?.[0]?.payload as DateRow | undefined
-                    return row?.x ? formatChartTooltipDate(row.x, "long") : ""
+                    return chart && row ? chartTooltipLabel(chart, row) : ""
                   }}
                   formatter={(value, _name, item) => {
                     const seriesId = String(item?.dataKey ?? "")

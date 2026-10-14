@@ -17,11 +17,13 @@ import {
 } from "@workspace/ui/components/chart"
 
 import { ErrorBanner } from "@/components/dashboard/error-banner"
-import { formatChartAxisTick, formatChartTooltipDate } from "@/components/formater"
 import { ChartCard, ChartEmpty, ChartSkeleton } from "@/components/charts/chart-card"
 import {
   buildSeriesConfig,
   chartDescription,
+  chartTooltipLabel,
+  formatBucketTick,
+  resolveTitle,
   toDateRows,
   toDateSeries,
   type DateChartData,
@@ -50,7 +52,8 @@ export function MovingWindowAreaChart({
   const rows = useMemo(() => (chart ? toDateRows(chart, series) : []), [chart, series])
   const config = useMemo(() => buildSeriesConfig(series), [series])
 
-  const title = chart?.title || fallbackTitle
+  const title = resolveTitle(chart?.title, fallbackTitle)
+  const granularity = chart?.granularity ?? "DAY"
 
   return (
     <ChartCard
@@ -80,7 +83,7 @@ export function MovingWindowAreaChart({
               dataKey="x"
               interval="preserveStartEnd"
               minTickGap={24}
-              tickFormatter={(value) => formatChartAxisTick(String(value), rows.length)}
+              tickFormatter={(value) => formatBucketTick(String(value), granularity, rows.length)}
               tickLine={false}
               tickMargin={8}
             />
@@ -98,8 +101,8 @@ export function MovingWindowAreaChart({
                   className="min-w-34"
                   indicator="line"
                   labelFormatter={(_, payload) => {
-                    const row = payload?.[0]?.payload as { x?: string } | undefined
-                    return row?.x ? formatChartTooltipDate(row.x, "long") : ""
+                    const row = payload?.[0]?.payload as { x?: string; end?: string } | undefined
+                    return chart ? chartTooltipLabel(chart, { x: row?.x ?? "", end: row?.end }) : ""
                   }}
                 />
               }

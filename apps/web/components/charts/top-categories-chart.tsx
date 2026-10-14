@@ -19,11 +19,12 @@ import {
 import { ErrorBanner } from "@/components/dashboard/error-banner"
 import { formatInteger } from "@/components/formater"
 import { ChartCard, ChartEmpty, ChartSkeleton } from "@/components/charts/chart-card"
+import { resolveTitle } from "@/components/charts/date-chart-utils"
 
 const chartConfig = {
   num: {
     label: "Count",
-    color: "var(--chart-2)",
+    color: "oklch(0.62 0.19 255)",
   },
 } satisfies ChartConfig
 
@@ -35,7 +36,7 @@ export function TopCategoriesChart({ className, ...props }: ComponentProps<typeo
     () => (chart?.lines ?? []).map((line) => ({ label: line.label, num: line.num })),
     [chart],
   )
-  const title = chart?.title || "Top categories"
+  const title = resolveTitle(chart?.title, "Top categories")
 
   return (
     <ChartCard title={title} description="Top 10 categories" className={className} {...props}>

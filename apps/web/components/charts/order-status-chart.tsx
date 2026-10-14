@@ -21,12 +21,15 @@ import {
 } from "@workspace/ui/components/chart"
 
 import { ErrorBanner } from "@/components/dashboard/error-banner"
-import { formatChartAxisTick, formatChartTooltipDate, formatInteger } from "@/components/formater"
+import { formatInteger } from "@/components/formater"
 import { ChartCard, ChartEmpty, ChartSkeleton } from "@/components/charts/chart-card"
 import {
   buildSeriesConfig,
   chartDescription,
+  chartTooltipLabel,
+  formatBucketTick,
   orderStatusStackGroup,
+  resolveTitle,
   toDateRows,
   toDateSeries,
 } from "@/components/charts/date-chart-utils"
@@ -38,7 +41,8 @@ export function OrderStatusChart({ className, ...props }: ComponentProps<typeof 
   const series = useMemo(() => (chart ? toDateSeries(chart) : []), [chart])
   const rows = useMemo(() => (chart ? toDateRows(chart, series) : []), [chart, series])
   const config = useMemo(() => buildSeriesConfig(series), [series])
-  const title = chart?.title || "Order status"
+  const title = resolveTitle(chart?.title, "Order status")
+  const granularity = chart?.granularity ?? "DAY"
 
   return (
     <ChartCard
@@ -65,7 +69,7 @@ export function OrderStatusChart({ className, ...props }: ComponentProps<typeof 
               dataKey="x"
               interval="preserveStartEnd"
               minTickGap={24}
-              tickFormatter={(value) => formatChartAxisTick(String(value), rows.length)}
+              tickFormatter={(value) => formatBucketTick(String(value), granularity, rows.length)}
               tickLine={false}
               tickMargin={8}
             />
@@ -83,10 +87,13 @@ export function OrderStatusChart({ className, ...props }: ComponentProps<typeof 
                   className="min-w-40"
                   indicator="line"
                   labelFormatter={(_, payload) => {
-                    const row = payload?.[0]?.payload as { x?: string } | undefined
-                    return row?.x ? formatChartTooltipDate(row.x, "long") : ""
+                    const row = payload?.[0]?.payload as { x?: string; end?: string } | undefined
+                    return chart ? chartTooltipLabel(chart, { x: row?.x ?? "", end: row?.end }) : ""
                   }}
-                  formatter={(value) => formatInteger(Number(value) || 0)}
+                  formatter={(value, _name, item) => {
+                    const seriesId = String(item?.dataKey ?? "")
+                    return [formatInteger(Number(value) || 0), config[seriesId]?.label ?? seriesId]
+                  }}
                 />
               }
               cursor={false}
