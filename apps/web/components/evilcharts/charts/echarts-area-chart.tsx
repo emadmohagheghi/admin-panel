@@ -98,7 +98,7 @@ type YAxisOption = ArrayItem<NonNullable<EChartsOption["yAxis"]>>;
 
 const STROKE_WIDTH = 0.8; // default series stroke — <Area strokeWidth> overrides it
 const LOADING_ANIMATION_DURATION = 2000; // shimmer loop, in milliseconds
-const REVEAL_DURATION = 1000; // intro draw-in length, in milliseconds
+const REVEAL_DURATION = 2200; // intro draw-in length, in milliseconds (tuned: calm entrance)
 // NOTE: the intro draw-in runs ECharts' RAW default entrance animation. Custom
 // easing was tried and abandoned — ECharts hardcodes the line-entrance clip to
 // linear and ignores animationEasing at every level (verified empirically).

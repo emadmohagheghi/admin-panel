@@ -29,12 +29,15 @@ export type DateRow = {
   total: number
 } & Record<string, number | string>
 
-const BLUE = "#3b82f6"
-const VIOLET = "#8b5cf6"
-const AMBER = "#f59e0b"
-const CYAN = "#06b6d4"
-const RED = "#ef4444"
-const GREEN = "#22c55e"
+const BLUE = "#7da8d9"
+const VIOLET = "#8b8fd4"
+const AMBER = "#bea065"
+const CYAN = "#5eb6b2"
+const RED = "#d3937a"
+const GREEN = "#76b590"
+
+/** Primary accent for single-series charts (areas, top categories). */
+export const CHART_BLUE = BLUE
 
 const CATEGORY_PALETTE = [BLUE, VIOLET, AMBER, CYAN, RED, GREEN]
 

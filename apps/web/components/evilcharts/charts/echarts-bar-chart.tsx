@@ -98,8 +98,8 @@ type YAxisOption = ArrayItem<NonNullable<EChartsOption["yAxis"]>>;
 const DEFAULT_BAR_RADIUS = 2;
 const STROKE_WIDTH = 1; // buffer-bar outline width
 const LOADING_ANIMATION_DURATION = 2000; // shimmer loop, in milliseconds
-const BAR_GROW_DURATION = 500; // per-bar grow-in length, in milliseconds
-const BAR_STAGGER = 50; // delay between consecutive bars in the reveal, in milliseconds
+const BAR_GROW_DURATION = 1100; // per-bar grow-in length, in milliseconds (tuned: calm entrance)
+const BAR_STAGGER = 90; // delay between consecutive bars in the reveal, in milliseconds (tuned: gentle cascade)
 const LOADING_DEFAULT_BARS = 12;
 // `revealEndsAt` marks when the intro grow-in finishes. The stripped-cap post-layout
 // correction (a notMerge repush) waits for it so it never lands mid-entrance and
