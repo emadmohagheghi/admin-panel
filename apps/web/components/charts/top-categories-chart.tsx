@@ -57,7 +57,7 @@ export function TopCategoriesChart({ className, ...props }: ComponentProps<typeo
           <EChartsBarChart.Grid />
           <EChartsBarChart.YAxis dataKey="label" />
           <EChartsBarChart.Tooltip />
-          <EChartsBarChart.Bar dataKey="num" showValues />
+          <EChartsBarChart.Bar dataKey="num" showValues isClickable enableHoverHighlight />
         </EChartsBarChart>
       )}
     </ChartCard>

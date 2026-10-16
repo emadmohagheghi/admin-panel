@@ -89,9 +89,9 @@ export function MovingWindowBarChart({
           <EChartsBarChart.XAxis dataKey="x" />
           <EChartsBarChart.YAxis />
           <EChartsBarChart.Tooltip />
-          {series.length > 1 && <EChartsBarChart.Legend />}
+          {series.length > 1 && <EChartsBarChart.Legend isClickable />}
           {ordered.map((s) => (
-            <EChartsBarChart.Bar key={s.id} dataKey={s.id} />
+            <EChartsBarChart.Bar key={s.id} dataKey={s.id} isClickable />
           ))}
         </EChartsBarChart>
       )}

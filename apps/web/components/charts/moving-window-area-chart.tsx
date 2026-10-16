@@ -88,7 +88,7 @@ export function MovingWindowAreaChart({
           {rows.length > 31 && <EChartsAreaChart.Brush />}
           {series.length > 1 && <EChartsAreaChart.Legend />}
           {series.map((s) => (
-            <EChartsAreaChart.Area key={s.id} dataKey={s.id} variant="gradient" />
+            <EChartsAreaChart.Area key={s.id} dataKey={s.id} variant="gradient" strokeVariant="solid" />
           ))}
         </EChartsAreaChart>
       )}
