@@ -1437,6 +1437,8 @@ type LiveState = {
   // Update-style re-push for paths that bypass React entirely (theme flips,
   // resizes) — set by the sync effect.
   repush: () => void;
+  // A deferred repush is already scheduled (coalesces resize/theme storms).
+  repushQueued: boolean;
   // Rebuilds ONLY the stripped bar series (fresh per-datum cap fractions) and
   // merges them with a silent lazyUpdate — never notMerge, so it leaves the
   // dataZoom drag anchor and the running entrance untouched. Set by the sync effect.
@@ -1518,6 +1520,7 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
       isHorizontal: false,
     },
     repush: () => {},
+    repushQueued: false,
     patchStrippedCaps: () => {},
   }).current;
 
@@ -2065,6 +2068,36 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
       if (patch.length) chart.setOption({ series: patch }, { silent: true, lazyUpdate: true });
     };
 
+    // PROJECT-EXTENSION: queue a single deferred repush instead of pushing
+    // many — coalesces resize/theme storms into one push after the reveal.
+    const queueRepush = () => {
+      if (live.repushQueued) return;
+      live.repushQueued = true;
+      const instance = echartsRef.current;
+      const wait = Math.max(0, live.revealEndsAt - performance.now());
+      window.setTimeout(() => {
+        live.repushQueued = false;
+        if (!instance || echartsRef.current !== instance) return;
+        live.repush();
+      }, wait + 50);
+    };
+
+    // Theme flips and resizes re-enter here without touching React: re-read the
+    // tokens (the .dark class changed, or textures need renderer-sized rebakes)
+    // and push an update-style option.
+    // PROJECT-EXTENSION: never stomp a running entrance — a notMerge push
+    // would snap the reveal to its final state mid-animation (e.g. layout
+    // shifts while sibling queries resolve, or the theme class applying on
+    // hydration). Defer until the reveal settles, then push once.
+    live.repush = () => {
+      if (!isLoading && performance.now() < live.revealEndsAt) {
+        queueRepush();
+        return;
+      }
+      live.resolved = resolveColors(container, config, seriesKeys);
+      push(false);
+    };
+
     // Intro grow-in — ECharts' native bar entrance (bars rise from the baseline),
     // staggered per-datum by animationType, enabled only for the first real
     // render: every later push (selection, theme, zoom) applies instantly, since
@@ -2076,15 +2109,14 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
     if (shouldReveal) live.hasRevealed = true;
     const revealEnabled =
       animation && shouldReveal && effectiveAnimation !== "none" && !shouldReduceMotion;
-    push(revealEnabled);
-
-    // Theme flips and resizes re-enter here without touching React: re-read the
-    // tokens (the .dark class changed, or textures need renderer-sized rebakes)
-    // and push an update-style option.
-    live.repush = () => {
-      live.resolved = resolveColors(container, config, seriesKeys);
-      push(false);
-    };
+    // PROJECT-EXTENSION: this effect also re-runs on unrelated parent renders
+    // (fresh children identities). If a reveal is already running, queue this
+    // update behind it instead of snapping it to the final state.
+    if (!shouldReveal && !isLoading && performance.now() < live.revealEndsAt) {
+      live.repush();
+    } else {
+      push(revealEnabled);
+    }
   }, [
     renderer,
     live,

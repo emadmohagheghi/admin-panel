@@ -35,22 +35,6 @@ type MovingWindowAreaChartProps = ComponentProps<typeof Card> & {
   aggregate?: "auto" | "weekly" | "daily"
 }
 
-// Static frame children are module constants on purpose: evilcharts rebuilds
-// and re-pushes its option whenever the children identity changes, which would
-// snap a running entrance reveal to its final state on every unrelated parent
-// re-render (e.g. a sibling query resolving). Only series-driven nodes below
-// are recreated, and only when the series actually change.
-const AREA_FRAME = (
-  <>
-    <EChartsAreaChart.Grid />
-    <EChartsAreaChart.XAxis dataKey="x" />
-    <EChartsAreaChart.YAxis />
-    <EChartsAreaChart.Tooltip />
-  </>
-)
-const AREA_LEGEND = <EChartsAreaChart.Legend />
-const AREA_BRUSH = <EChartsAreaChart.Brush />
-
 export function MovingWindowAreaChart({
   chart,
   fetching,
@@ -69,13 +53,6 @@ export function MovingWindowAreaChart({
   const series = useMemo(() => (view ? toDateSeries(view) : []), [view])
   const rows = useMemo(() => (view ? toDateRows(view, series) : []), [view, series])
   const config = useMemo(() => buildSeriesConfig(series), [series])
-  const areaNodes = useMemo(
-    () =>
-      series.map((s) => (
-        <EChartsAreaChart.Area key={s.id} dataKey={s.id} variant="gradient" strokeVariant="solid" />
-      )),
-    [series],
-  )
 
   const title = resolveTitle(chart?.title, fallbackTitle)
   const loading = fetching && rows.length === 0
@@ -103,10 +80,15 @@ export function MovingWindowAreaChart({
           className="h-72 w-full"
           isLoading={loading}
         >
-          {AREA_FRAME}
-          {rows.length > 31 && AREA_BRUSH}
-          {series.length > 1 && AREA_LEGEND}
-          {areaNodes}
+          <EChartsAreaChart.Grid />
+          <EChartsAreaChart.XAxis dataKey="x" />
+          <EChartsAreaChart.YAxis />
+          <EChartsAreaChart.Tooltip />
+          {rows.length > 31 && <EChartsAreaChart.Brush />}
+          {series.length > 1 && <EChartsAreaChart.Legend />}
+          {series.map((s) => (
+            <EChartsAreaChart.Area key={s.id} dataKey={s.id} variant="gradient" strokeVariant="solid" />
+          ))}
         </EChartsAreaChart>
       )}
     </ChartCard>

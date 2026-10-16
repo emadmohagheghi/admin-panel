@@ -1519,6 +1519,8 @@ type LiveState = {
   // Update-style re-push for paths that bypass React entirely (theme flips,
   // resizes) — set by the sync effect.
   repush: () => void;
+  // A deferred repush is already scheduled (coalesces resize/theme storms).
+  repushQueued: boolean;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1595,6 +1597,7 @@ export function EChartsAreaChart<TData extends Record<string, unknown>>({
       enableHoverReveal,
     },
     repush: () => {},
+    repushQueued: false,
   }).current;
 
   // Skeleton rows roll lazily on first use — an impure useRef initializer would
@@ -2156,6 +2159,36 @@ export function EChartsAreaChart<TData extends Record<string, unknown>>({
       syncBrushOverlayNow();
     };
 
+    // PROJECT-EXTENSION: queue a single deferred repush instead of pushing
+    // many — coalesces resize/theme storms into one push after the reveal.
+    const queueRepush = () => {
+      if (live.repushQueued) return;
+      live.repushQueued = true;
+      const instance = echartsRef.current;
+      const wait = Math.max(0, live.revealEndsAt - performance.now());
+      window.setTimeout(() => {
+        live.repushQueued = false;
+        if (!instance || echartsRef.current !== instance) return;
+        live.repush();
+      }, wait + 50);
+    };
+
+    // Theme flips and resizes re-enter here without touching React: re-read the
+    // tokens (the .dark class changed, or textures need renderer-sized rebakes)
+    // and push an update-style option.
+    // PROJECT-EXTENSION: never stomp a running entrance — a notMerge push
+    // would snap the reveal to its final state mid-animation (e.g. layout
+    // shifts while sibling queries resolve, or the theme class applying on
+    // hydration). Defer until the reveal settles, then push once.
+    live.repush = () => {
+      if (!isLoading && performance.now() < live.revealEndsAt) {
+        queueRepush();
+        return;
+      }
+      live.resolved = resolveColors(container, config, seriesKeys);
+      push(false);
+    };
+
     // Intro reveal — ECharts' native progressive draw, enabled only for the first
     // real render: the line traces in, dots pop up as its front passes. Every
     // later push (selection, theme, zoom) applies instantly, since notMerge would
@@ -2168,15 +2201,14 @@ export function EChartsAreaChart<TData extends Record<string, unknown>>({
     const revealEnabled =
       animation && shouldReveal && effectiveAnimation !== "none" && !shouldReduceMotion;
     if (revealEnabled) live.revealEndsAt = performance.now() + REVEAL_DURATION;
-    push(revealEnabled);
-
-    // Theme flips and resizes re-enter here without touching React: re-read the
-    // tokens (the .dark class changed, or textures need renderer-sized rebakes)
-    // and push an update-style option.
-    live.repush = () => {
-      live.resolved = resolveColors(container, config, seriesKeys);
-      push(false);
-    };
+    // PROJECT-EXTENSION: this effect also re-runs on unrelated parent renders
+    // (fresh children identities). If a reveal is already running, queue this
+    // update behind it instead of snapping it to the final state.
+    if (!shouldReveal && !isLoading && performance.now() < live.revealEndsAt) {
+      live.repush();
+    } else {
+      push(revealEnabled);
+    }
   }, [
     renderer,
     live,
