@@ -207,6 +207,9 @@ export interface EChartsBarChartProps<TData extends Record<string, unknown>> {
   animationType?: BarAnimationType; // default grow-in order each <Bar> inherits
   barGap?: number; // gap between bars within the same category, in pixels
   barCategoryGap?: number; // gap between categories of bars, in pixels
+  // PROJECT-EXTENSION: right grid inset in pixels — room for tip value labels
+  // (<Bar showValues/>) so the longest bar's label never clips at the edge.
+  gridRight?: number;
   defaultSelectedDataKey?: string | null; // series selected on first render
   onSelectionChange?: (key: string | null) => void; // fires when the selected series changes
   // Colors ONLY the tallest column and mutes the rest. With several series the
@@ -804,6 +807,7 @@ type OptionBuildContext = {
   brushHeight: number;
   barGap?: number;
   barCategoryGap?: number;
+  gridRight?: number; // PROJECT-EXTENSION: right grid inset (tip labels)
   resolved: ResolvedColors;
   categories: string[];
   brushRange: BrushRange; // zoom window carried through rebuilds
@@ -825,6 +829,7 @@ function buildChartLayout({
   isHorizontal,
   categorySlot,
   valueSlot,
+  gridRight,
 }: OptionBuildContext): {
   grid: GridComponentOption;
   brushBottom: number;
@@ -841,7 +846,7 @@ function buildChartLayout({
   return {
     grid: {
       left: 8,
-      right: 8,
+      right: gridRight ?? 8,
       top: legendTop ? 42 : 16,
       bottom: 8 + brushGap + (legendBottom ? 34 : 0),
     },
@@ -1465,6 +1470,7 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
   animationType = "left-to-right",
   barGap,
   barCategoryGap,
+  gridRight,
   defaultSelectedDataKey = null,
   onSelectionChange,
   enableMaxValueHighlight = false,
@@ -1695,6 +1701,7 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
       brushHeight,
       barGap,
       barCategoryGap,
+      gridRight,
       resolved,
       categories,
       brushRange: live.brushRange,
@@ -1747,6 +1754,7 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
     brushHeight,
     barGap,
     barCategoryGap,
+    gridRight,
     maxHighlightIndex,
   ]);
 
