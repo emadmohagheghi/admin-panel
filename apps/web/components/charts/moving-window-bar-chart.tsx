@@ -38,6 +38,21 @@ type MovingWindowBarChartProps = ComponentProps<typeof Card> & {
   groupForKey?: (key: string) => string
 }
 
+// Static frame children are module constants on purpose: evilcharts rebuilds
+// and re-pushes its option whenever the children identity changes, which would
+// snap a running entrance reveal to its final state on every unrelated parent
+// re-render (e.g. a sibling query resolving). Only series-driven nodes below
+// are recreated, and only when the series actually change.
+const BAR_FRAME = (
+  <>
+    <EChartsBarChart.Grid />
+    <EChartsBarChart.XAxis dataKey="x" />
+    <EChartsBarChart.YAxis />
+    <EChartsBarChart.Tooltip />
+  </>
+)
+const BAR_LEGEND = <EChartsBarChart.Legend isClickable />
+
 export function MovingWindowBarChart({
   chart,
   fetching,
@@ -62,6 +77,10 @@ export function MovingWindowBarChart({
   }, [series, groupForKey])
   const rows = useMemo(() => (chart ? toDateRows(chart, ordered) : []), [chart, ordered])
   const config = useMemo(() => buildSeriesConfig(ordered), [ordered])
+  const barNodes = useMemo(
+    () => ordered.map((s) => <EChartsBarChart.Bar key={s.id} dataKey={s.id} isClickable />),
+    [ordered],
+  )
 
   const title = resolveTitle(chart?.title, fallbackTitle)
   const loading = fetching && rows.length === 0
@@ -82,15 +101,11 @@ export function MovingWindowBarChart({
           xDataKey="x"
           stackType="stacked"
           className="h-72 w-full"
+          isLoading={loading}
         >
-          <EChartsBarChart.Grid />
-          <EChartsBarChart.XAxis dataKey="x" />
-          <EChartsBarChart.YAxis />
-          <EChartsBarChart.Tooltip />
-          {series.length > 1 && <EChartsBarChart.Legend isClickable />}
-          {ordered.map((s) => (
-            <EChartsBarChart.Bar key={s.id} dataKey={s.id} isClickable />
-          ))}
+          {BAR_FRAME}
+          {ordered.length > 1 && BAR_LEGEND}
+          {barNodes}
         </EChartsBarChart>
       )}
     </ChartCard>

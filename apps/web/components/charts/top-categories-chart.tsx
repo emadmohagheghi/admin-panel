@@ -22,6 +22,19 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
+// Static children are a module constant on purpose: evilcharts rebuilds and
+// re-pushes its option whenever the children identity changes, which would
+// snap a running entrance reveal to its final state on every unrelated parent
+// re-render (e.g. a sibling query resolving).
+const TOP_CATS_CHILDREN = (
+  <>
+    <EChartsBarChart.Grid />
+    <EChartsBarChart.YAxis dataKey="label" />
+    <EChartsBarChart.Tooltip />
+    <EChartsBarChart.Bar dataKey="num" showValues isClickable />
+  </>
+)
+
 export function TopCategoriesChart({ className, ...props }: ComponentProps<typeof Card>) {
   const [{ data, fetching, error }, reexecuteQuery] = useQuery({ query: TopCategoriesChartDocument })
 
@@ -53,10 +66,7 @@ export function TopCategoriesChart({ className, ...props }: ComponentProps<typeo
           gridRight={44}
           className="h-80 w-full"
         >
-          <EChartsBarChart.Grid />
-          <EChartsBarChart.YAxis dataKey="label" />
-          <EChartsBarChart.Tooltip />
-          <EChartsBarChart.Bar dataKey="num" showValues isClickable />
+          {TOP_CATS_CHILDREN}
         </EChartsBarChart>
       )}
     </ChartCard>
