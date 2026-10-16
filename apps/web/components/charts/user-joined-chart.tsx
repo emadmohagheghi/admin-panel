@@ -20,6 +20,7 @@ export function UserJoinedChart(props: ComponentProps<typeof Card>) {
       errorMessage={error?.message}
       onRetry={() => reexecuteQuery({ requestPolicy: "network-only" })}
       fallbackTitle="New users"
+      aggregate="weekly"
       {...props}
     />
   )

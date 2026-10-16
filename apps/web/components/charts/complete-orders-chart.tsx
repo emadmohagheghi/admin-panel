@@ -21,6 +21,7 @@ export function CompleteOrdersChart(props: ComponentProps<typeof Card>) {
       errorMessage={error?.message}
       onRetry={() => reexecuteQuery({ requestPolicy: "network-only" })}
       fallbackTitle="Completed orders"
+      aggregate="daily"
       {...props}
     />
   )

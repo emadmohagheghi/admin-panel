@@ -29,8 +29,13 @@ type MovingWindowBarChartProps = ComponentProps<typeof Card> & {
   errorMessage?: string
   onRetry: () => void
   fallbackTitle: string
-  /** Stack id per series key; omit to stack every series together. */
-  stackForKey?: (key: string) => string
+  /**
+   * Group id per series key. Series are stably reordered so group mates sit
+   * adjacently in the single shared stack (e.g. CANCELED over PENDING) —
+   * every status chart renders the same single-stack type, groups only
+   * control adjacency. Omit to keep the backend order.
+   */
+  groupForKey?: (key: string) => string
 }
 
 export function MovingWindowBarChart({
@@ -39,13 +44,24 @@ export function MovingWindowBarChart({
   errorMessage,
   onRetry,
   fallbackTitle,
-  stackForKey,
+  groupForKey,
   className,
   ...props
 }: MovingWindowBarChartProps) {
   const series = useMemo(() => (chart ? toDateSeries(chart) : []), [chart])
-  const rows = useMemo(() => (chart ? toDateRows(chart, series) : []), [chart, series])
-  const config = useMemo(() => buildSeriesConfig(series), [series])
+  const ordered = useMemo(() => {
+    if (!groupForKey) return series
+    const groupIndex = new Map<string, number>()
+    for (const s of series) {
+      const g = groupForKey(s.key)
+      if (!groupIndex.has(g)) groupIndex.set(g, groupIndex.size)
+    }
+    return [...series].sort(
+      (a, b) => (groupIndex.get(groupForKey(a.key)) ?? 0) - (groupIndex.get(groupForKey(b.key)) ?? 0),
+    )
+  }, [series, groupForKey])
+  const rows = useMemo(() => (chart ? toDateRows(chart, ordered) : []), [chart, ordered])
+  const config = useMemo(() => buildSeriesConfig(ordered), [ordered])
 
   const title = resolveTitle(chart?.title, fallbackTitle)
 
@@ -73,12 +89,8 @@ export function MovingWindowBarChart({
           <EChartsBarChart.YAxis />
           <EChartsBarChart.Tooltip />
           {series.length > 1 && <EChartsBarChart.Legend />}
-          {series.map((s) => (
-            <EChartsBarChart.Bar
-              key={s.id}
-              dataKey={s.id}
-              stack={stackForKey?.(s.key)}
-            />
+          {ordered.map((s) => (
+            <EChartsBarChart.Bar key={s.id} dataKey={s.id} />
           ))}
         </EChartsBarChart>
       )}

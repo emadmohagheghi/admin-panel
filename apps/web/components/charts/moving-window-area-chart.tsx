@@ -28,6 +28,11 @@ type MovingWindowAreaChartProps = ComponentProps<typeof Card> & {
   errorMessage?: string
   onRetry: () => void
   fallbackTitle: string
+  /**
+   * Bucket aggregation: "auto" aggregates dense daily windows into weekly
+   * sums, "weekly" forces it, "daily" always shows raw buckets.
+   */
+  aggregate?: "auto" | "weekly" | "daily"
 }
 
 export function MovingWindowAreaChart({
@@ -36,19 +41,23 @@ export function MovingWindowAreaChart({
   errorMessage,
   onRetry,
   fallbackTitle,
+  aggregate = "auto",
   className,
   ...props
 }: MovingWindowAreaChartProps) {
-  const weekly = useMemo(() => (chart ? aggregateWeekly(chart) : null), [chart])
-  const view = weekly ?? chart
+  const aggregatedView = useMemo(() => {
+    if (!chart || aggregate === "daily") return null
+    return aggregateWeekly(chart)
+  }, [chart, aggregate])
+  const view = aggregatedView ?? chart
   const series = useMemo(() => (view ? toDateSeries(view) : []), [view])
   const rows = useMemo(() => (view ? toDateRows(view, series) : []), [view, series])
   const config = useMemo(() => buildSeriesConfig(series), [series])
 
   const title = resolveTitle(chart?.title, fallbackTitle)
   const description = chart
-    ? weekly
-      ? `${weekly.buckets.length} weeks · per week`
+    ? aggregatedView
+      ? `${aggregatedView.buckets.length} weeks · per week`
       : chartDescription(chart)
     : undefined
 

@@ -199,10 +199,11 @@ export function resolveTitle(backendTitle: string | null | undefined, fallback: 
 }
 
 /**
- * Stack group for the order-status grouped chart (backend's request: CANCELED
- * over PENDING, COMPLETE over BEING_PROCESS). Keys are normalized before
- * matching so `BEING_PROCESS`, `being process`, `BeingProcess` all land in
- * the same group; unknown future statuses fall into their own "other" stack.
+ * Group id for the order-status chart (backend's pairing: CANCELED with
+ * PENDING, COMPLETE with BEING_PROCESS). Keys are normalized before matching
+ * so `BEING_PROCESS`, `being process`, `BeingProcess` all land in the same
+ * group; unknown future statuses fall into their own "other" group. Used only
+ * to order series adjacently inside the single shared stack.
  */
 export function orderStatusStackGroup(key: string): string {
   const k = normalizeKey(key)

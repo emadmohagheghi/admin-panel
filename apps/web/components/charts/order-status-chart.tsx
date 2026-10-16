@@ -1,10 +1,10 @@
 "use client"
 
-// Order status counts per bucket as grouped stacked bars
-// (backend: orderStatusMovingWindow). Backend's grouping: CANCELED stacks
-// over PENDING, COMPLETE over BEING_PROCESS — each group is one stack id so
-// the pairs render side by side. Unknown future statuses get their own
-// "other" stack.
+// Order status counts per bucket as stacked bars
+// (backend: orderStatusMovingWindow). Same single-stack type as the basket
+// chart; related statuses are ordered adjacently (CANCELED over PENDING,
+// COMPLETE over BEING_PROCESS). Unknown future statuses keep backend order
+// in their own group.
 import type { ComponentProps } from "react"
 import { useQuery } from "urql"
 
@@ -26,7 +26,7 @@ export function OrderStatusChart(props: ComponentProps<typeof Card>) {
       errorMessage={error?.message}
       onRetry={() => reexecuteQuery({ requestPolicy: "network-only" })}
       fallbackTitle="Order status"
-      stackForKey={orderStatusStackGroup}
+      groupForKey={orderStatusStackGroup}
       {...props}
     />
   )
