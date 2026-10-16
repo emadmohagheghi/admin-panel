@@ -49,7 +49,6 @@ export function TopCategoriesChart({ className, ...props }: ComponentProps<typeo
           config={chartConfig}
           xDataKey="label"
           layout="horizontal"
-          animation={false}
           isLoading={loading}
           gridRight={44}
           className="h-80 w-full"
