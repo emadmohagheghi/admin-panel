@@ -144,6 +144,48 @@ export function chartDescription(chart: DateChartData): string {
   return `${n} ${noun}${n === 1 ? "" : "s"} · per ${noun}`
 }
 
+/**
+ * Dense daily windows (e.g. 91 buckets for "the last 90 days") are too busy
+ * for an area chart — aggregate consecutive buckets into weekly sums once the
+ * window exceeds ~a month. Returns null when the chart is already coarse.
+ */
+const DENSE_BUCKET_LIMIT = 31
+const WEEK_CHUNK = 7
+
+export function aggregateWeekly(chart: DateChartData): DateChartData | null {
+  const buckets = chart.buckets ?? []
+  if (buckets.length <= DENSE_BUCKET_LIMIT) return null
+  const chunks: DateChartData["buckets"] = []
+  for (let i = 0; i < buckets.length; i += WEEK_CHUNK) {
+    const group = buckets.slice(i, i + WEEK_CHUNK)
+    const first = group[0]
+    const last = group[group.length - 1]
+    if (!first || !last) continue
+    const sums = new Map<string, number>()
+    let total = 0
+    for (const b of group) {
+      total += b.total ?? 0
+      for (const p of b.points ?? []) {
+        sums.set(p.seriesKey, (sums.get(p.seriesKey) ?? 0) + p.value)
+      }
+    }
+    chunks.push({
+      __typename: "Bucket",
+      key: `w${chunks.length}`,
+      label: first.label,
+      start: first.start,
+      end: last.end,
+      total,
+      points: [...sums.entries()].map(([seriesKey, value]) => ({
+        __typename: "DataPoint" as const,
+        seriesKey,
+        value,
+      })),
+    })
+  }
+  return { ...chart, buckets: chunks }
+}
+
 const PLACEHOLDER_TITLES = /^(some title|title|test( title)?|demo|untitled|lorem( ipsum)?|sample)$/i
 
 /**
@@ -154,27 +196,6 @@ const PLACEHOLDER_TITLES = /^(some title|title|test( title)?|demo|untitled|lorem
 export function resolveTitle(backendTitle: string | null | undefined, fallback: string): string {
   const t = (backendTitle ?? "").trim()
   return t && !PLACEHOLDER_TITLES.test(t) ? t : fallback
-}
-
-/**
- * Whole-percent shares that always sum to exactly 100 (largest remainder),
- * so 100%-stacked bars never overflow the axis through rounding.
- */
-export function exactPercentShares(values: number[]): number[] {
-  const total = values.reduce((a, b) => a + b, 0)
-  if (total <= 0) return values.map(() => 0)
-  const raw = values.map((v) => (v / total) * 100)
-  const floors = raw.map(Math.floor)
-  let rest = 100 - floors.reduce((a, b) => a + b, 0)
-  const order = raw
-    .map((_r, i) => i)
-    .sort((a, b) => (raw[b] ?? 0) - (floors[b] ?? 0) - ((raw[a] ?? 0) - (floors[a] ?? 0)))
-  for (const i of order) {
-    if (rest <= 0) break
-    floors[i] = (floors[i] ?? 0) + 1
-    rest -= 1
-  }
-  return floors
 }
 
 /**

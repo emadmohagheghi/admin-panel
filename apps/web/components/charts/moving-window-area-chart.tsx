@@ -13,6 +13,7 @@ import { EChartsAreaChart } from "@/components/evilcharts/charts/echarts-area-ch
 import { ErrorBanner } from "@/components/dashboard/error-banner"
 import { ChartCard, ChartEmpty, ChartSkeleton } from "@/components/charts/chart-card"
 import {
+  aggregateWeekly,
   buildSeriesConfig,
   chartDescription,
   resolveTitle,
@@ -38,16 +39,23 @@ export function MovingWindowAreaChart({
   className,
   ...props
 }: MovingWindowAreaChartProps) {
-  const series = useMemo(() => (chart ? toDateSeries(chart) : []), [chart])
-  const rows = useMemo(() => (chart ? toDateRows(chart, series) : []), [chart, series])
+  const weekly = useMemo(() => (chart ? aggregateWeekly(chart) : null), [chart])
+  const view = weekly ?? chart
+  const series = useMemo(() => (view ? toDateSeries(view) : []), [view])
+  const rows = useMemo(() => (view ? toDateRows(view, series) : []), [view, series])
   const config = useMemo(() => buildSeriesConfig(series), [series])
 
   const title = resolveTitle(chart?.title, fallbackTitle)
+  const description = chart
+    ? weekly
+      ? `${weekly.buckets.length} weeks · per week`
+      : chartDescription(chart)
+    : undefined
 
   return (
     <ChartCard
       title={title}
-      description={chart ? chartDescription(chart) : undefined}
+      description={description}
       className={className}
       {...props}
     >
