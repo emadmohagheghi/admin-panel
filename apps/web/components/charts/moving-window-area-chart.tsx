@@ -11,7 +11,7 @@ import { Card } from "@workspace/ui/components/card"
 
 import { EChartsAreaChart } from "@/components/evilcharts/charts/echarts-area-chart"
 import { ErrorBanner } from "@/components/dashboard/error-banner"
-import { ChartCard, ChartEmpty, ChartSkeleton } from "@/components/charts/chart-card"
+import { ChartCard, ChartEmpty } from "@/components/charts/chart-card"
 import {
   aggregateWeekly,
   buildSeriesConfig,
@@ -55,6 +55,7 @@ export function MovingWindowAreaChart({
   const config = useMemo(() => buildSeriesConfig(series), [series])
 
   const title = resolveTitle(chart?.title, fallbackTitle)
+  const loading = fetching && rows.length === 0
   const description = chart
     ? aggregatedView
       ? `${aggregatedView.buckets.length} weeks · per week`
@@ -69,21 +70,22 @@ export function MovingWindowAreaChart({
       {...props}
     >
       {errorMessage && <ErrorBanner error={errorMessage} toastPrefix={title} onRetry={onRetry} />}
-      {!errorMessage && (fetching && rows.length === 0 ? <ChartSkeleton /> : null)}
-      {!errorMessage && !fetching && rows.length === 0 && <ChartEmpty />}
-      {!errorMessage && rows.length > 0 && (
+      {!errorMessage && !loading && rows.length === 0 && <ChartEmpty />}
+      {!errorMessage && (loading || rows.length > 0) && (
         <EChartsAreaChart
           data={rows}
           config={config}
           xDataKey="x"
           curveType="natural"
           animation={false}
+          isLoading={loading}
           className="h-72 w-full"
         >
           <EChartsAreaChart.Grid />
           <EChartsAreaChart.XAxis dataKey="x" />
           <EChartsAreaChart.YAxis />
           <EChartsAreaChart.Tooltip />
+          {rows.length > 31 && <EChartsAreaChart.Brush />}
           {series.length > 1 && <EChartsAreaChart.Legend />}
           {series.map((s) => (
             <EChartsAreaChart.Area key={s.id} dataKey={s.id} variant="gradient" />

@@ -12,7 +12,7 @@ import { Card } from "@workspace/ui/components/card"
 
 import { EChartsBarChart, type ChartConfig } from "@/components/evilcharts/charts/echarts-bar-chart"
 import { ErrorBanner } from "@/components/dashboard/error-banner"
-import { ChartCard, ChartEmpty, ChartSkeleton } from "@/components/charts/chart-card"
+import { ChartCard, ChartEmpty } from "@/components/charts/chart-card"
 import { CHART_ACCENT, resolveTitle } from "@/components/charts/date-chart-utils"
 
 const chartConfig = {
@@ -31,6 +31,7 @@ export function TopCategoriesChart({ className, ...props }: ComponentProps<typeo
     [chart],
   )
   const title = resolveTitle(chart?.title, "Top categories")
+  const loading = fetching && rows.length === 0
 
   return (
     <ChartCard title={title} description="Top 10 categories" className={className} {...props}>
@@ -41,15 +42,15 @@ export function TopCategoriesChart({ className, ...props }: ComponentProps<typeo
           onRetry={() => reexecuteQuery({ requestPolicy: "network-only" })}
         />
       )}
-      {!error && (fetching && rows.length === 0 ? <ChartSkeleton /> : null)}
-      {!error && !fetching && rows.length === 0 && <ChartEmpty />}
-      {!error && rows.length > 0 && (
+      {!error && !loading && rows.length === 0 && <ChartEmpty />}
+      {!error && (loading || rows.length > 0) && (
         <EChartsBarChart
           data={rows}
           config={chartConfig}
           xDataKey="label"
           layout="horizontal"
           animation={false}
+          isLoading={loading}
           gridRight={44}
           className="h-80 w-full"
         >

@@ -34,14 +34,6 @@ export function ChartCard({ title, description, headerAction, className, childre
   )
 }
 
-export function ChartSkeleton() {
-  return (
-    <div className="flex h-64 flex-col justify-end gap-2" aria-hidden>
-      <div className="bg-muted h-full w-full animate-pulse rounded-lg" />
-    </div>
-  )
-}
-
 export function ChartEmpty({ message = "No data yet" }: { message?: string }) {
   return (
     <div className="text-muted-foreground flex h-64 items-center justify-center text-sm">

@@ -13,7 +13,7 @@ import { Card } from "@workspace/ui/components/card"
 
 import { EChartsBarChart } from "@/components/evilcharts/charts/echarts-bar-chart"
 import { ErrorBanner } from "@/components/dashboard/error-banner"
-import { ChartCard, ChartEmpty, ChartSkeleton } from "@/components/charts/chart-card"
+import { ChartCard, ChartEmpty } from "@/components/charts/chart-card"
 import {
   buildSeriesConfig,
   chartDescription,
@@ -64,6 +64,7 @@ export function MovingWindowBarChart({
   const config = useMemo(() => buildSeriesConfig(ordered), [ordered])
 
   const title = resolveTitle(chart?.title, fallbackTitle)
+  const loading = fetching && rows.length === 0
 
   return (
     <ChartCard
@@ -73,15 +74,15 @@ export function MovingWindowBarChart({
       {...props}
     >
       {errorMessage && <ErrorBanner error={errorMessage} toastPrefix={title} onRetry={onRetry} />}
-      {!errorMessage && (fetching && rows.length === 0 ? <ChartSkeleton /> : null)}
-      {!errorMessage && !fetching && rows.length === 0 && <ChartEmpty />}
-      {!errorMessage && rows.length > 0 && (
+      {!errorMessage && !loading && rows.length === 0 && <ChartEmpty />}
+      {!errorMessage && (loading || rows.length > 0) && (
         <EChartsBarChart
           data={rows}
           config={config}
           xDataKey="x"
           stackType="stacked"
           animation={false}
+          isLoading={loading}
           className="h-72 w-full"
         >
           <EChartsBarChart.Grid />
