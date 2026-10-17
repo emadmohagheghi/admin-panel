@@ -1,7 +1,7 @@
 "use client"
 
 // Users table — server-side cursor pagination, client-side sort/search on the
-// current page, status badges.
+// current page, status badges, live online count (userOnlineCounts subscription).
 import { useMemo, useState } from "react"
 import { useQuery } from "urql"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -10,8 +10,10 @@ import { UsersListDocument, type UsersListQuery } from "@workspace/graphql"
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
 import { DataTable } from "@/components/dashboard/data-table"
+import { StatusIndicator } from "@/components/indicator"
 import { backendMediaProxyUrl } from "@/lib/backend-media"
 import { useCursorPagination } from "@/hooks/use-cursor-pagination"
+import { useOnlineCount } from "@/hooks/use-online-count"
 import { formatDateTime } from "@/lib/format"
 
 type UserNode = NonNullable<UsersListQuery["users"]>["edges"][number]["node"]
@@ -23,21 +25,23 @@ function UserCell({ user }: { user: UserNode }) {
   const initial = (user.firstName[0] ?? user.email[0] ?? "?").toUpperCase()
   return (
     <div className="flex items-center gap-2.5">
-      <Avatar className="size-7">
-        {user.avatar?.url ? (
-          <AvatarImage src={backendMediaProxyUrl(user.avatar.url) ?? undefined} alt="" />
+      <div className="relative shrink-0">
+        <Avatar className="size-7">
+          {user.avatar?.url ? (
+            <AvatarImage src={backendMediaProxyUrl(user.avatar.url) ?? undefined} alt="" />
+          ) : null}
+          <AvatarFallback className="text-xs">{initial}</AvatarFallback>
+        </Avatar>
+        {user.onlineStatus ? (
+          <>
+            <span
+              aria-hidden
+              className="bg-success ring-background absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2"
+            />
+            <span className="sr-only">Online</span>
+          </>
         ) : null}
-        <AvatarFallback className="text-xs">{initial}</AvatarFallback>
-      </Avatar>
-      {user.onlineStatus && <span className="sr-only">Online</span>}
-      <span
-        aria-hidden
-        className={
-          user.onlineStatus
-            ? "bg-success relative -ml-4 size-2.5 rounded-full ring-2 ring-background"
-            : "hidden"
-        }
-      />
+      </div>
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">{name || "—"}</p>
         <p className="text-muted-foreground truncate text-xs">{user.email}</p>
@@ -49,6 +53,7 @@ function UserCell({ user }: { user: UserNode }) {
 export default function UsersPage() {
   const { cursor, canGoBack, goNext, goBack, page } = useCursorPagination()
   const [search, setSearch] = useState("")
+  const online = useOnlineCount()
 
   const [{ data, fetching, error }, reexecute] = useQuery({
     query: UsersListDocument,
@@ -131,7 +136,19 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Users</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">Users</h1>
+          <Badge variant="secondary" className="gap-1.5">
+            <StatusIndicator
+              color={online.error ? "rose" : "emerald"}
+              pulse={!online.error}
+              className="size-1.5"
+              aria-hidden
+            />
+            <span className="tabular-nums">{online.count ?? "—"}</span>
+            <span>online</span>
+          </Badge>
+        </div>
         <p className="text-muted-foreground text-sm">
           Store users — sorting and search apply to the current page.
         </p>

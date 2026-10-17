@@ -1,10 +1,11 @@
 "use client"
 
 // Overview page — stat cards backed by the DashboardStats query,
+// a live online-users card driven by the userOnlineCounts subscription,
 // plus the backend-driven charts (DateChart moving windows + top categories).
 // Categories were removed because even its totalCount is permission-locked.
 import { useQuery } from "urql"
-import { Layers, Package, Users } from "lucide-react"
+import { Activity, Layers, Package, Users } from "lucide-react"
 import { DashboardStatsDocument } from "@workspace/graphql"
 
 import { Card, CardContent } from "@workspace/ui/components/card"
@@ -14,6 +15,8 @@ import { CompleteOrdersChart } from "@/components/charts/complete-orders-chart"
 import { OrderStatusChart } from "@/components/charts/order-status-chart"
 import { TopCategoriesChart } from "@/components/charts/top-categories-chart"
 import { UserJoinedChart } from "@/components/charts/user-joined-chart"
+import { StatusIndicator } from "@/components/indicator"
+import { useOnlineCount } from "@/hooks/use-online-count"
 
 const STATS = [
   { key: "products", label: "Products", icon: Package, href: "/dashboard/products" },
@@ -38,6 +41,7 @@ function getStatCount(data: StatsData, key: (typeof STATS)[number]["key"]): numb
 
 export default function DashboardOverviewPage() {
   const [{ data, fetching, error }] = useQuery({ query: DashboardStatsDocument })
+  const online = useOnlineCount()
 
   return (
     <div className="space-y-6">
@@ -52,13 +56,13 @@ export default function DashboardOverviewPage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {STATS.map((stat) => {
           const count = getStatCount(data, stat.key)
           const showSkeleton = fetching && count === null
           return (
             <Card key={stat.key} className="hover:border-foreground/15 transition-colors">
-              <CardContent className="flex items-center gap-4">
+              <CardContent className="flex flex-row items-center gap-4">
                 <span className="bg-muted text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-xl">
                   <stat.icon className="size-5" aria-hidden />
                 </span>
@@ -74,6 +78,30 @@ export default function DashboardOverviewPage() {
             </Card>
           )
         })}
+
+        <Card className="hover:border-foreground/15 transition-colors">
+          <CardContent className="flex flex-row items-center gap-4">
+            <span className="bg-muted text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-xl">
+              <Activity className="size-5" aria-hidden />
+            </span>
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                Online now
+                <StatusIndicator
+                  color={online.error ? "rose" : "emerald"}
+                  pulse={!online.error}
+                  className="size-1.5"
+                  aria-hidden
+                />
+              </p>
+              {online.fetching && online.count === null ? (
+                <div className="bg-muted h-6 w-12 animate-pulse rounded" aria-hidden />
+              ) : (
+                <p className="text-2xl font-bold tabular-nums">{online.count ?? "—"}</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
