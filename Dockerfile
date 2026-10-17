@@ -41,19 +41,33 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
 
-FROM node:22-alpine AS runner
+FROM base AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 
-COPY --from=builder --chown=node:node /app/apps/web/.next/standalone ./
-COPY --from=builder --chown=node:node /app/apps/web/.next/static ./apps/web/.next/static
+# Production-only workspace install (same layout as the deps stage, no dev deps).
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json apps/web/package.json
+COPY packages/*/package.json packages/
+
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prod
+
+# The deployment entrypoint is the custom server (apps/web/server.mjs): it
+# serves Next AND relays the /api/graphql-ws websocket to the backend.
+# Standalone output is intentionally NOT used — Next does not trace custom
+# server files, and standalone's generated server.js has no WS relay.
+COPY --from=builder --chown=node:node /app/apps/web/.next apps/web/.next
+COPY --from=builder --chown=node:node /app/apps/web/next.config.ts apps/web/next.config.ts
+COPY --from=builder --chown=node:node /app/apps/web/server.mjs apps/web/server.mjs
 
 USER node
 
+WORKDIR /app/apps/web
+
 EXPOSE 3000
 
-CMD ["node", "apps/web/server.js"]
+CMD ["node", "server.mjs", "--prod"]

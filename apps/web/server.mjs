@@ -14,7 +14,9 @@
 // 1) Only the exact WS path is handled; every other upgrade (Next HMR in dev)
 //    falls through to Next's own upgrade handler, which Next attaches to this
 //    server lazily on the first request.
-// 2) The Origin header must match Host (blocks cross-site socket hijacking).
+// 2) The Origin header must match the effective host — Host, or the proxy-set
+//    X-Forwarded-Host when the app sits behind a reverse proxy that rewrites
+//    Host (browser JS cannot set X-Forwarded-Host on a WS handshake).
 // 3) Only the `access` cookie is forwarded — never csrftoken or anything else.
 // 4) TLS policy mirrors lib/backend.ts: relaxed only in dev or when
 //    GRAPHQL_ALLOW_INSECURE_TLS is set, strict otherwise. Keep in sync.
@@ -54,6 +56,28 @@ function readCookie(cookieHeader, name) {
     if (key === name) return decodeURIComponent(rest.join("="))
   }
   return null
+}
+
+/** Lowercase and drop default ports so `Example.com:443` === `example.com`. */
+function normalizeHost(value) {
+  return String(value).trim().toLowerCase().replace(/:(80|443)$/, "")
+}
+
+/**
+ * Does the browser Origin match any known effective host? Behind a reverse
+ * proxy the Host header may carry the internal address (`127.0.0.1:3000`),
+ * while the public hostname arrives via X-Forwarded-Host.
+ */
+function sameOrigin(originHeader, hostCandidates) {
+  if (!originHeader) return false
+  let originHost
+  try {
+    originHost = new URL(originHeader).host // URL API lowercases + strips default ports
+  } catch {
+    return false
+  }
+  const target = normalizeHost(originHost)
+  return hostCandidates.some((h) => h && normalizeHost(h) === target)
 }
 
 function rejectUpgrade(socket, status, statusText) {
@@ -204,13 +228,13 @@ server.on("upgrade", (req, socket, head) => {
   if (url.pathname !== WS_PATH) return // Next handles HMR et al.
 
   const host = req.headers.host
-  let originHost = null
-  try {
-    originHost = req.headers.origin ? new URL(req.headers.origin).host : null
-  } catch {
-    originHost = null
-  }
-  if (!host || !originHost || originHost !== host) {
+  const forwardedHost = String(req.headers["x-forwarded-host"] ?? "")
+    .split(",")[0]
+    .trim()
+  if (!sameOrigin(req.headers.origin, [forwardedHost, host])) {
+    console.warn(
+      `[graphql-ws] rejected upgrade — origin mismatch (origin=${req.headers.origin ?? "none"} host=${host ?? "none"} x-forwarded-host=${forwardedHost || "none"})`,
+    )
     rejectUpgrade(socket, 403, "Forbidden")
     return
   }
@@ -222,6 +246,9 @@ server.on("upgrade", (req, socket, head) => {
     .split(",")
     .map((p) => p.trim())
   if (!offered.includes(PROTOCOL)) {
+    console.warn(
+      `[graphql-ws] rejected upgrade — missing "${PROTOCOL}" subprotocol (offered: ${offered.join(", ") || "none"})`,
+    )
     rejectUpgrade(socket, 400, "Bad Request")
     return
   }
