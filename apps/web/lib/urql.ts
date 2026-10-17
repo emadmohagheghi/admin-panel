@@ -5,12 +5,23 @@
 // error triggers the refresh mutation once, then the same operation is
 // retried. If refresh also fails, the error bubbles up to the top level
 // (e.g. SessionGate) which sends the user to /login.
+//
+// Subscriptions: graphql-transport-ws over the same-origin relay in
+// server.mjs (path /api/graphql-ws). subscriptionExchange adapts the
+// graphql-ws client (lib/urql-ws) to urql's exchange pipeline.
 import { authExchange } from "@urql/exchange-auth"
-import { cacheExchange, createClient, fetchExchange } from "urql"
+import {
+  cacheExchange,
+  createClient,
+  fetchExchange,
+  subscriptionExchange,
+  type ExecutionResult,
+} from "urql"
 
 import { RefreshSessionDocument } from "@workspace/graphql"
 
 import { GRAPHQL_PROXY_PATH } from "@/lib/urql-env"
+import { getGraphqlWsClient } from "@/lib/urql-ws"
 
 /** Is this error an auth error? (must stay in sync with isAuthErrorText in lib/auth-session)
  * Matches the skill's needsRefresh (/permission|authenticated|anonymous|unauthorized/i):
@@ -58,6 +69,30 @@ export function makeClient() {
             await utils.mutate(RefreshSessionDocument, {})
           },
         }
+      }),
+      subscriptionExchange({
+        forwardSubscription(request) {
+          return {
+            subscribe: (observer) => ({
+              unsubscribe: getGraphqlWsClient().subscribe(
+                {
+                  query: request.query ?? "",
+                  variables: request.variables,
+                  operationName: request.operationName,
+                  extensions: request.extensions,
+                },
+                {
+                  next: (value) => observer.next(value as ExecutionResult),
+                  // graphql-ws reports server error messages as GraphQLError[]
+                  // (subscriptionExchange turns arrays into a result carrying
+                  // `errors`) and fatal close events as CloseEvent objects.
+                  error: (err) => observer.error(err),
+                  complete: () => observer.complete(),
+                },
+              ),
+            }),
+          }
+        },
       }),
       fetchExchange,
     ],

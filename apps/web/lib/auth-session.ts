@@ -43,8 +43,10 @@ export function graphQLErrorMessage(err: CombinedError | undefined): string {
  * Matches the skill's needsRefresh (/permission|authenticated|anonymous|unauthorized/i):
  * an expired access cookie surfaces as an anonymous-user permission error
  * (e.g. "... DASHBOARD_ACCESS"), not HTTP 401 — treat it as "not signed in"
- * so the gate refreshes/redirects instead of showing a dead-session error. */
-function isAuthErrorText(message: string): boolean {
+ * so the gate refreshes/redirects instead of showing a dead-session error.
+ * Also used by useOnlineCount: subscriptions bypass authExchange, so their
+ * auth errors are recovered there with refreshSession(). */
+export function isAuthErrorText(message: string): boolean {
   const m = message.toLowerCase()
   return (
     m.includes("does not have access") ||
@@ -111,4 +113,15 @@ export async function logout(): Promise<void> {
       fetchOptions: { headers: { "X-CSRFToken": readCsrfCookie() } },
     })
     .toPromise()
+}
+
+/**
+ * Refresh the session once and report whether a fresh session was issued.
+ * HTTP operations are handled by authExchange (lib/urql) automatically; this
+ * is for transports that bypass it — e.g. the WebSocket subscription, whose
+ * identity is resolved by the backend at socket handshake time.
+ */
+export async function refreshSession(): Promise<boolean> {
+  const { data } = await makeClient().mutation(RefreshSessionDocument, {}).toPromise()
+  return data?.refresh?.ok ?? false
 }

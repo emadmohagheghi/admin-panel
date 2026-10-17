@@ -1,0 +1,8 @@
+# ---------- اشتراک‌های زنده ----------
+# تعداد کاربران آنلاین — GraphQL over WebSocket (پروتکل graphql-transport-ws)
+# که از طریق relay هم‌مبدأ در apps/web/server.mjs (مسیر /api/graphql-ws) وصل می‌شود.
+subscription UserOnlineCounts {
+  userOnlineCounts {
+    onlines
+  }
+}

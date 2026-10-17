@@ -7,7 +7,8 @@
     "GRAPHQL_ALLOW_INSECURE_TLS",
     "SESSION_COOKIE_NAME",
     "SESSION_COOKIE_NAMES",
-    "NODE_ENV"
+    "NODE_ENV",
+    "PORT"
   ],
   "tasks": {
     "build": {
