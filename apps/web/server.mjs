@@ -216,16 +216,19 @@ const wss = new WebSocketServer({
   handleProtocols: (protocols) => (protocols.has(PROTOCOL) ? PROTOCOL : false),
 })
 
-// Runs before Next's own upgrade listener (attached lazily on first request).
-server.on("upgrade", (req, socket, head) => {
+/**
+ * Handle one server "upgrade" event. Returns true when the request belongs to
+ * the relay (handled or rejected), false to let every other listener run.
+ */
+function relayUpgrade(req, socket, head) {
   let url
   try {
     url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`)
   } catch {
     socket.destroy()
-    return
+    return true
   }
-  if (url.pathname !== WS_PATH) return // Next handles HMR et al.
+  if (url.pathname !== WS_PATH) return false // Next handles HMR et al.
 
   const host = req.headers.host
   const forwardedHost = String(req.headers["x-forwarded-host"] ?? "")
@@ -236,7 +239,7 @@ server.on("upgrade", (req, socket, head) => {
       `[graphql-ws] rejected upgrade — origin mismatch (origin=${req.headers.origin ?? "none"} host=${host ?? "none"} x-forwarded-host=${forwardedHost || "none"})`,
     )
     rejectUpgrade(socket, 403, "Forbidden")
-    return
+    return true
   }
 
   // Only graphql-transport-ws clients may connect: ws would otherwise accept
@@ -250,12 +253,30 @@ server.on("upgrade", (req, socket, head) => {
       `[graphql-ws] rejected upgrade — missing "${PROTOCOL}" subprotocol (offered: ${offered.join(", ") || "none"})`,
     )
     rejectUpgrade(socket, 400, "Bad Request")
-    return
+    return true
   }
 
   const access = readCookie(req.headers.cookie ?? "", "access")
   wss.handleUpgrade(req, socket, head, (browser) => relay(browser, access))
-})
+  return true
+}
+
+// Next registers its own "upgrade" listener lazily (after the first request)
+// and closes the socket when the path matches an app route — see
+// router-server.js: "if (matchedOutput) return socket.end()". /api/graphql-ws
+// IS an app route (app/api/graphql-ws/route.ts, used on Vercel), so a plain
+// listener of ours is not enough: both listeners would receive the same event
+// and Next would end() the socket we just upgraded. Intercepting emit() lets
+// the relay take the event exclusively; every other upgrade (Next HMR in dev,
+// future upgrades) still reaches Next's listener through realEmit.
+const realEmit = server.emit.bind(server)
+server.emit = (event, ...args) => {
+  if (event === "upgrade" && relayUpgrade(...args)) return true
+  return realEmit(event, ...args)
+}
+// Node only emits "upgrade" while at least one listener exists; this no-op
+// keeps that count >= 1 until Next attaches its own listener.
+server.on("upgrade", () => {})
 
 server.listen(PORT, () => {
   console.log(
