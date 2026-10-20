@@ -39,3 +39,23 @@ query UsersList(
     }
   }
 }
+
+# شمارش کاربران برای نمودار radial صفحهٔ users — هر فیلتر boolean یک رینگ
+# (نسبت به کل کاربران)؛ کلیک روی هر ردیف همان فیلتر را روی جدول اعمال می‌کند.
+query UserFilterStats {
+  total: users {
+    totalCount
+  }
+  active: users(filters: { isActive: { exact: true } }) {
+    totalCount
+  }
+  confirmed: users(filters: { isConfirmed: { exact: true } }) {
+    totalCount
+  }
+  staff: users(filters: { isStaff: { exact: true } }) {
+    totalCount
+  }
+  superuser: users(filters: { isSuperuser: { exact: true } }) {
+    totalCount
+  }
+}

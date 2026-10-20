@@ -3,7 +3,7 @@
 // Generic data table — TanStack Table + loading/error/empty states + cursor pagination.
 // Keep the structure clean (Tailwind classes only, no inline styles) so motion
 // wrappers can be added later.
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import {
   getCoreRowModel,
   getSortedRowModel,
@@ -75,6 +75,8 @@ export type DataTableProps<T> = {
   searchValue?: string
   onSearchChange?: (value: string) => void
   searchPlaceholder?: string
+  /** Extra controls rendered beside the search input (filters, ordering, …) */
+  toolbar?: ReactNode
 }
 
 export function DataTable<T>({
@@ -91,6 +93,7 @@ export function DataTable<T>({
   searchValue,
   onSearchChange,
   searchPlaceholder,
+  toolbar,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([])
   /**
@@ -125,27 +128,38 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-3">
-      {onSearchChange && (
+      {(onSearchChange || toolbar) && (
         <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="search"
-            role="searchbox"
-            aria-label={searchPlaceholder ?? "Search"}
-            value={searchValue ?? ""}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={searchPlaceholder ?? "Search…"}
-            className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring/50 h-9 w-full max-w-xs rounded-lg border px-3 text-sm shadow-xs transition-colors outline-none focus-visible:border-ring focus-visible:ring-3"
-          />
+          {onSearchChange && (
+            <input
+              type="search"
+              role="searchbox"
+              aria-label={searchPlaceholder ?? "Search"}
+              value={searchValue ?? ""}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder={searchPlaceholder ?? "Search…"}
+              className="h-9 w-full max-w-xs rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            />
+          )}
+          {toolbar}
         </div>
       )}
 
-      <ErrorBanner error={error} onRetry={onRetry} toastPrefix="Failed to load data" />
+      <ErrorBanner
+        error={error}
+        onRetry={onRetry}
+        toastPrefix="Failed to load data"
+      />
 
-      <div className="bg-card shadow-xs overflow-hidden rounded-xl border">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <Table>
           {/* Screen-reader summary of what this table shows */}
           <caption className="sr-only">
-            {showSkeleton ? "Loading data" : table.getRowModel().rows.length === 0 ? emptyMessage : `${data.length} rows`}
+            {showSkeleton
+              ? "Loading data"
+              : table.getRowModel().rows.length === 0
+                ? emptyMessage
+                : `${data.length} rows`}
           </caption>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -156,24 +170,41 @@ export function DataTable<T>({
                   return (
                     <TableHead
                       key={header.id}
-                      className={edgePaddingClass(headerIndex, headerGroup.headers.length)}
+                      className={edgePaddingClass(
+                        headerIndex,
+                        headerGroup.headers.length
+                      )}
                       aria-sort={
-                        sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined
+                        sorted === "asc"
+                          ? "ascending"
+                          : sorted === "desc"
+                            ? "descending"
+                            : undefined
                       }
                     >
                       {header.isPlaceholder ? null : sortable ? (
                         <button
                           type="button"
                           onClick={header.column.getToggleSortingHandler()}
-                          className="hover:text-foreground flex w-full items-center gap-1 outline-none"
+                          className="flex w-full items-center gap-1 outline-none hover:text-foreground"
                         >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                           <span aria-hidden className="text-xs opacity-60">
-                            {sorted === "asc" ? "▲" : sorted === "desc" ? "▼" : "↕"}
+                            {sorted === "asc"
+                              ? "▲"
+                              : sorted === "desc"
+                                ? "▼"
+                                : "↕"}
                           </span>
                         </button>
                       ) : (
-                        flexRender(header.column.columnDef.header, header.getContext())
+                        flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )
                       )}
                     </TableHead>
                   )
@@ -194,7 +225,7 @@ export function DataTable<T>({
                       <div
                         className={cn(
                           "flex items-center",
-                          col.columnDef.meta?.skeletonClassName ?? "h-5",
+                          col.columnDef.meta?.skeletonClassName ?? "h-5"
                         )}
                       >
                         <Skeleton className="h-4 w-full max-w-28" aria-hidden />
@@ -206,7 +237,7 @@ export function DataTable<T>({
             ) : table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-40">
-                  <div className="text-muted-foreground flex flex-col items-center justify-center gap-2 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2 text-center text-muted-foreground">
                     <Inbox className="size-8 opacity-40" aria-hidden />
                     <p className="text-sm">{emptyMessage}</p>
                   </div>
@@ -220,7 +251,10 @@ export function DataTable<T>({
                       key={cell.id}
                       className={edgePaddingClass(cellIndex, cells.length)}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -244,7 +278,7 @@ export function DataTable<T>({
             </>
           ) : (
             <>
-              <p className="text-muted-foreground text-sm" aria-live="polite">
+              <p className="text-sm text-muted-foreground" aria-live="polite">
                 {totalCount != null
                   ? `${totalCount.toLocaleString("en-US")} ${totalCount === 1 ? "row" : "rows"}`
                   : pageLabel}
@@ -265,7 +299,7 @@ export function DataTable<T>({
                 </Button>
                 {pagination.page != null && (
                   <span
-                    className="text-muted-foreground min-w-20 text-center text-sm tabular-nums"
+                    className="min-w-20 text-center text-sm text-muted-foreground tabular-nums"
                     aria-live="polite"
                   >
                     Page {pagination.page}

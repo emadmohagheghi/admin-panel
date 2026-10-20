@@ -684,8 +684,12 @@ input UserFilterType {
 input UserOrderType {
   id: Ordering
   lastLogin: Ordering
+  dateJoined: Ordering
   updatedAt: Ordering
   email: Ordering
+  firstName: Ordering
+  lastName: Ordering
+  onlineStatus: Boolean
 }
 
 type GroupTypeCursorConnection {
