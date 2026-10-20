@@ -10,6 +10,7 @@ import {
   flexRender,
   useReactTable,
   type ColumnDef,
+  type OnChangeFn,
   type RowData,
   type SortingState,
 } from "@tanstack/react-table"
@@ -71,6 +72,10 @@ export type DataTableProps<T> = {
   pageLabel?: string
   /** Total record count (shown in the pagination footer) */
   totalCount?: number | null
+  /** Server-owned sorting — disables client-side sorting of the current rows */
+  manualSorting?: boolean
+  sorting?: SortingState
+  onSortingChange?: OnChangeFn<SortingState>
   /** Client-side search (current page only) */
   searchValue?: string
   onSearchChange?: (value: string) => void
@@ -90,12 +95,17 @@ export function DataTable<T>({
   pagination,
   pageLabel,
   totalCount,
+  manualSorting = false,
+  sorting: controlledSorting,
+  onSortingChange: controlledOnSortingChange,
   searchValue,
   onSearchChange,
   searchPlaceholder,
   toolbar,
 }: DataTableProps<T>) {
-  const [sorting, setSorting] = useState<SortingState>([])
+  const [internalSorting, setInternalSorting] = useState<SortingState>([])
+  const sorting = controlledSorting ?? internalSorting
+  const onSortingChange = controlledOnSortingChange ?? setInternalSorting
   /**
    * Set when the user clicks Next/Previous and cleared once the fetch
    * settles, so a page transition renders the (height-matched) skeleton
@@ -119,11 +129,12 @@ export function DataTable<T>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
     state: { sorting },
-    onSortingChange: setSorting,
+    onSortingChange,
     manualPagination: true,
     manualFiltering: true,
+    manualSorting,
   })
 
   return (

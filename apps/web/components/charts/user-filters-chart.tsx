@@ -23,7 +23,7 @@ export type UserBooleanFilter =
   | "isStaff"
   | "isSuperuser"
 
-export type UserBooleanFilterState = Record<UserBooleanFilter, boolean | null>
+export type UserBooleanFilterState = Record<UserBooleanFilter, boolean>
 
 type FilterCountKey = "active" | "confirmed" | "staff" | "superuser"
 
@@ -93,7 +93,7 @@ export function UserFiltersChart({ filters, onToggle }: UserFiltersChartProps) {
   })
 
   const total = data?.total.totalCount ?? 0
-  const loading = fetching && !data
+  const loading = fetching || (!data && !error)
 
   const rows = useMemo(
     () =>
@@ -118,39 +118,42 @@ export function UserFiltersChart({ filters, onToggle }: UserFiltersChartProps) {
       ) : !loading && total === 0 ? (
         <ChartEmpty message="No users yet" />
       ) : (
-        <div className="flex flex-col items-center gap-6 sm:flex-row">
-          <div className="relative h-64 w-full max-w-72 shrink-0">
+        <div
+          aria-busy={loading}
+          className="flex flex-col items-center gap-4 lg:flex-row lg:gap-6"
+        >
+          <div className="relative h-48 w-48 shrink-0">
             <EChartsRadialChart
               data={rows}
               config={CHART_CONFIG}
               nameKey="key"
               max={Math.max(total, 1)}
               isLoading={loading}
-              innerRadius="34%"
+              innerRadius="36%"
               outerRadius="100%"
               className="h-full w-full"
             >
               <EChartsRadialChart.Tooltip />
               <EChartsRadialChart.RadialBar
                 dataKey="count"
-                barSize={12}
-                cornerRadius={6}
+                barSize={9}
+                cornerRadius={5}
                 showBackground
               />
             </EChartsRadialChart>
             {!loading && (
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-semibold tabular-nums">
+                <span className="text-lg font-semibold tabular-nums">
                   {total.toLocaleString("en-US")}
                 </span>
-                <span className="text-xs text-muted-foreground">users</span>
+                <span className="text-[11px] text-muted-foreground">users</span>
               </div>
             )}
           </div>
 
-          <ul className="grid w-full flex-1 content-center gap-2 sm:grid-cols-2">
+          <ul className="grid w-full max-w-sm grid-cols-1 content-center gap-2 sm:grid-cols-2">
             {USER_BOOLEAN_FILTERS.map((filter) => {
-              const active = filters[filter.key] !== null
+              const active = filters[filter.key]
               const count = loading
                 ? null
                 : (data?.[filter.countKey].totalCount ?? 0)
@@ -158,18 +161,14 @@ export function UserFiltersChart({ filters, onToggle }: UserFiltersChartProps) {
               return (
                 <li key={filter.key}>
                   {count === null ? (
-                    <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
-                      <Skeleton className="size-2.5 rounded-full" />
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="ms-auto h-4 w-10" />
-                    </div>
+                    <Skeleton className="h-9 w-full rounded-md" />
                   ) : (
                     <button
                       type="button"
                       onClick={() => onToggle(filter.key)}
                       aria-pressed={active}
                       className={cn(
-                        "flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                        "flex h-9 w-full items-center gap-2 rounded-md border px-2.5 text-left text-sm whitespace-nowrap transition-colors",
                         active
                           ? "border-foreground/15 bg-muted"
                           : "border-transparent hover:bg-muted/50"
@@ -178,18 +177,18 @@ export function UserFiltersChart({ filters, onToggle }: UserFiltersChartProps) {
                       <span
                         aria-hidden
                         className={cn(
-                          "size-2.5 shrink-0 rounded-full",
+                          "size-2 shrink-0 rounded-full",
                           filter.dotClassName
                         )}
                       />
-                      <span className="min-w-0 flex-1 truncate">
-                        {filter.label}
-                      </span>
-                      <span className="tabular-nums">
-                        {count.toLocaleString("en-US")}
-                      </span>
-                      <span className="w-10 text-right text-xs text-muted-foreground tabular-nums">
-                        {formatPercent(count, total)}
+                      <span>{filter.label}</span>
+                      <span className="ms-auto flex items-baseline gap-1.5 tabular-nums">
+                        <span className="font-medium">
+                          {count.toLocaleString("en-US")}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatPercent(count, total)}
+                        </span>
                       </span>
                     </button>
                   )}
