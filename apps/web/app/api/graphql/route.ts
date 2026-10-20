@@ -21,7 +21,12 @@
 // headers on HTTPS (verified: POST with a localhost Referer → 403 CSRF check).
 import { NextRequest, NextResponse } from "next/server"
 
-import { BACKEND_URL, backendFetch } from "@/lib/backend"
+import {
+  BACKEND_URL,
+  backendFetch,
+  describeFetchError,
+  isConnectPhaseError,
+} from "@/lib/backend"
 
 /** Session cookie name for the proxy.ts gate (Django default) */
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? "access"
@@ -83,24 +88,33 @@ function sanitizeSetCookie(cookie: string): string {
     .join("; ")
 }
 
-function jsonError(message: string, status: number): NextResponse {
-  return NextResponse.json({ errors: [{ message }] }, { status })
+function jsonError(message: string, status: number, headers?: HeadersInit): NextResponse {
+  return NextResponse.json({ errors: [{ message }] }, { status, headers })
 }
 
-/** Flatten `fetch failed` + its `cause` chain so prod logs/UI show the real reason. */
-function describeFetchError(err: unknown): string {
-  if (!(err instanceof Error)) return "unknown error"
-  const parts = [err.message]
-  let cause: unknown = (err as { cause?: unknown }).cause
-  while (cause instanceof Error && parts.length < 4) {
-    parts.push(cause.message)
-    cause = (cause as { cause?: unknown }).cause
+/**
+ * Client-facing error payloads stay short and free of internal details (host,
+ * IP, syscall names): the browser only needs to know whether trying again may
+ * help. Everything diagnostic goes to the server log.
+ */
+function backendFailureResponse(method: string, err: unknown): NextResponse {
+  if (isConnectPhaseError(err)) {
+    console.error(
+      `GraphQL proxy ${method} failed: backend unreachable — ${describeFetchError(err)}`,
+    )
+    return jsonError("The server is temporarily unreachable. Please try again in a moment.", 503, {
+      "Retry-After": "2",
+    })
   }
-  return parts.join(" ← ")
+  console.error(`GraphQL proxy ${method} failed: ${describeFetchError(err)}`)
+  return jsonError("The server could not process the request. Please try again.", 502)
 }
 
 function ensureConfigured(): NextResponse | null {
-  if (!BACKEND_URL) return jsonError("GRAPHQL_BACKEND_ENDPOINT is not configured", 500)
+  if (!BACKEND_URL) {
+    console.error("GRAPHQL_BACKEND_ENDPOINT is not configured")
+    return jsonError("The server is temporarily unavailable. Please try again later.", 503)
+  }
   return null
 }
 
@@ -141,7 +155,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const csrf = await fetchFreshCsrfToken()
-    if (!csrf) return jsonError("Failed to fetch csrftoken", 502)
+    if (!csrf) {
+      console.error("GraphQL proxy GET failed: no csrftoken in the backend response")
+      return jsonError("Could not start a session with the server. Please try again.", 502)
+    }
 
     const res = NextResponse.json({ ok: true })
     res.cookies.set("csrftoken", csrf, {
@@ -152,8 +169,7 @@ export async function GET(request: NextRequest) {
     })
     return res
   } catch (err) {
-    console.error("GraphQL proxy GET failed:", describeFetchError(err))
-    return jsonError(`Backend unreachable: ${describeFetchError(err)}`, 502)
+    return backendFailureResponse("GET", err)
   }
 }
 
@@ -213,20 +229,27 @@ async function buildProxyResponse(backendRes: Response): Promise<NextResponse> {
   const contentType = backendRes.headers.get("content-type") ?? ""
   const isJsonBody = /application\/json/i.test(contentType) && rawBody.trim() !== ""
 
+  if (!isJsonBody) {
+    console.error(
+      `GraphQL proxy: backend returned a non-JSON response (${backendRes.status} ${backendRes.statusText || contentType || "empty body"})`,
+    )
+  }
+
   const res = new NextResponse(
     isJsonBody
       ? rawBody
       : JSON.stringify({
           errors: [
             {
-              message: `Backend returned a non-JSON response (${backendRes.status} ${
-                backendRes.statusText || contentType || "empty body"
-              })`,
+              message:
+                backendRes.status >= 500
+                  ? "The server could not process the request. Please try again."
+                  : `The request was rejected by the server (${backendRes.status}).`,
             },
           ],
         }),
     {
-      status: backendRes.status,
+      status: backendRes.status >= 500 ? 502 : backendRes.status,
       headers: { "Content-Type": "application/json" },
     },
   )
@@ -267,7 +290,6 @@ export async function POST(request: NextRequest) {
     }
     return await buildProxyResponse(backendRes)
   } catch (err) {
-    console.error("GraphQL proxy POST failed:", describeFetchError(err))
-    return jsonError(`Backend unreachable: ${describeFetchError(err)}`, 502)
+    return backendFailureResponse("POST", err)
   }
 }

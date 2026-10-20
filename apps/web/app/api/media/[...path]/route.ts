@@ -8,7 +8,7 @@
 // everything else is 404 so this can't become an open proxy to the backend.
 import { NextRequest, NextResponse } from "next/server"
 
-import { BACKEND_ORIGIN, backendFetch } from "@/lib/backend"
+import { BACKEND_ORIGIN, backendFetch, describeFetchError } from "@/lib/backend"
 
 export async function GET(
   _request: NextRequest,
@@ -29,7 +29,10 @@ export async function GET(
       headers: { Accept: "image/*" },
       cache: "no-store",
     })
-    if (!backendRes.ok) return new NextResponse("Upstream error", { status: 502 })
+    if (!backendRes.ok) {
+      console.error(`Media proxy: backend returned ${backendRes.status} for ${targetPath}`)
+      return new NextResponse("Upstream error", { status: 502 })
+    }
 
     const body = await backendRes.arrayBuffer()
     return new NextResponse(body, {
@@ -39,7 +42,8 @@ export async function GET(
         "Cache-Control": "public, max-age=3600",
       },
     })
-  } catch {
+  } catch (err) {
+    console.error(`Media proxy failed for ${targetPath}: ${describeFetchError(err)}`)
     return new NextResponse("Upstream unreachable", { status: 502 })
   }
 }
