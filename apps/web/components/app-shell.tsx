@@ -2,6 +2,7 @@ import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar"
 import { AppHeader } from "@/components/app-header"
 import { AppSidebar } from "@/components/app-sidebar"
 import { OnlinePresenceProvider } from "@/components/online-presence"
+import { ScrollEdgeDrag } from "@/components/scroll-edge-drag"
 import type { Me } from "@/lib/auth-session"
 
 export function AppShell({
@@ -36,6 +37,7 @@ export function AppShell({
           </SidebarInset>
         </SidebarProvider>
       </OnlinePresenceProvider>
+      <ScrollEdgeDrag />
     </div>
   )
 }
