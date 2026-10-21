@@ -21,6 +21,7 @@ query UsersList(
     edges {
       cursor
       node {
+        id
         email
         firstName
         lastName
@@ -36,6 +37,44 @@ query UsersList(
           url
         }
       }
+    }
+  }
+}
+
+# جزئیات کاربر — بدون id در permissions/groupPermissions چون resolver بک‌اند خطا می‌دهد
+query UserDetail($id: ID!) {
+  user(id: $id) {
+    id
+    email
+    firstName
+    lastName
+    description
+    metadata
+    avatar {
+      url
+      width
+      height
+    }
+    isStaff
+    isActive
+    isConfirmed
+    isSuperuser
+    dateJoined
+    updatedAt
+    lastLogin
+    languageCode
+    onlineStatus
+    groups {
+      id
+      name
+    }
+    permissions {
+      name
+      codename
+    }
+    groupPermissions {
+      name
+      codename
     }
   }
 }

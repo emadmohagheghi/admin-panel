@@ -4,6 +4,7 @@
 // Server-side title search (iContains verified live), server cursor pagination
 // (backend caps first at 20), client-side skip-to-category filtering.
 import { useMemo, useState } from "react"
+import Link from "next/link"
 import { useQuery } from "urql"
 import { ImageIcon } from "lucide-react"
 
@@ -21,7 +22,7 @@ type ProductNode = NonNullable<ProductsListQuery["products"]>["edges"][number]["
 
 const PAGE_SIZE = 20
 
-function ImageCell({ url, title }: { url?: string | null; title: string }) {
+function ImageCell({ url }: { url?: string | null }) {
   const proxied = backendMediaProxyUrl(url ?? undefined)
   return (
     <Avatar className="bg-muted size-9 rounded-lg">
@@ -35,15 +36,26 @@ function ImageCell({ url, title }: { url?: string | null; title: string }) {
   )
 }
 
-function CategoryTags({ names }: { names: string[] }) {
-  if (names.length === 0) return <span className="text-muted-foreground text-xs">—</span>
-  const shown = names.slice(0, 2)
-  const rest = names.length - shown.length
+function CategoryTags({
+  categories,
+}: {
+  categories: ProductNode["categories"]
+}) {
+  if (categories.length === 0) {
+    return <span className="text-muted-foreground text-xs">—</span>
+  }
+  const shown = categories.slice(0, 2)
+  const rest = categories.length - shown.length
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {shown.map((n) => (
-        <Badge key={n} variant="secondary" className="max-w-32 truncate font-medium">
-          {n}
+      {shown.map((category) => (
+        <Badge
+          key={category.id}
+          variant="secondary"
+          className="max-w-32 truncate font-medium"
+          render={<Link href={`/dashboard/categories/${category.id}`} />}
+        >
+          {category.name}
         </Badge>
       ))}
       {rest > 0 && (
@@ -79,11 +91,14 @@ export default function ProductsPage() {
           const p = ctx.row.original
           return (
             <div className="flex min-w-0 items-center gap-2.5">
-              <ImageCell url={p.medias?.edges?.[0]?.node?.image?.url} title={p.title} />
-              <div className="min-w-0">
+              <ImageCell url={p.medias?.edges?.[0]?.node?.image?.url} />
+              <Link
+                href={`/dashboard/products/${p.id}`}
+                className="min-w-0 rounded-sm outline-none hover:underline focus-visible:ring-3"
+              >
                 <p className="truncate text-sm font-medium">{p.title}</p>
                 <p className="text-muted-foreground truncate font-mono text-xs">{p.slug}</p>
-              </div>
+              </Link>
             </div>
           )
         },
@@ -101,9 +116,7 @@ export default function ProductsPage() {
       {
         id: "categories",
         header: "Categories",
-        cell: (ctx) => (
-          <CategoryTags names={ctx.row.original.categories.map((c) => c.name)} />
-        ),
+        cell: (ctx) => <CategoryTags categories={ctx.row.original.categories} />,
       },
       {
         accessorFn: (row) => row.variants?.totalCount ?? 0,

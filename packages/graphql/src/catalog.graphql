@@ -148,77 +148,81 @@ query ProductsList($first: Int, $after: String, $filters: ProductFilter) {
   }
 }
 
-# جزئیات محصول با node(id) — شامل ترجمه‌ها، متادیتا و تمام واریانت‌ها
+# جزئیات محصول با product(id) — شامل ترجمه‌ها، متادیتا و تمام واریانت‌ها
 query ProductDetail($id: ID!) {
-  node(id: $id) {
-    __typename
-    ... on ProductType {
-      id
+  product(id: $id) {
+    id
+    title
+    slug
+    isPublic
+    description
+    metaTitle
+    metaDescription
+    metadata
+    createdAt
+    updatedAt
+    productType {
       title
       slug
-      isPublic
+      requireShipping
+      trackStock
+    }
+    categories {
+      id
+      name
+      slug
+    }
+    translations {
+      languageCode
+      title
       description
       metaTitle
       metaDescription
-      metadata
-      createdAt
-      updatedAt
-      productType {
-        title
-        slug
-        requireShipping
-        trackStock
+    }
+    variants(first: 20) {
+      totalCount
+      edges {
+        node {
+          sku
+          name
+          trackInventory
+          sortOrder
+          createdAt
+          updatedAt
+        }
       }
-      categories {
-        id
+    }
+    medias(first: 20) {
+      totalCount
+      edges {
+        node {
+          sortOrder
+          caption
+          published
+          image {
+            url
+            width
+            height
+            size
+          }
+        }
+      }
+    }
+    attributes {
+      sortOrder
+      attribute {
         name
         slug
+        inputType
       }
-      variants(first: 20) {
-        totalCount
-        edges {
-          node {
-            sku
-            name
-            trackInventory
-            sortOrder
-            createdAt
-            updatedAt
-          }
-        }
-      }
-      medias(first: 20) {
-        totalCount
-        edges {
-          node {
-            sortOrder
-            caption
-            published
-            image {
-              url
-              width
-              height
-              size
-            }
-          }
-        }
-      }
-      attributes {
-        sortOrder
-        attribute {
-          name
-          slug
-          inputType
-        }
-        value {
-          label
-          value
-          plainText
-          numeric
-          boolean
-          dateTime
-          dataType
-        }
+      value {
+        label
+        value
+        plainText
+        numeric
+        boolean
+        dateTime
+        dataType
       }
     }
   }

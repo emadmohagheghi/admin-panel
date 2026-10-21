@@ -5,6 +5,7 @@
 // plus cursor pagination and infinite scroll. The radial breakdown card above
 // toggles the same filters.
 import { useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
 import { useQuery } from "urql"
 import type { ColumnDef, SortingState, Updater } from "@tanstack/react-table"
 import { Loader2 } from "lucide-react"
@@ -111,10 +112,13 @@ function UserCell({ user }: { user: UserNode }) {
           </>
         ) : null}
       </div>
-      <div className="min-w-0">
+      <Link
+        href={`/dashboard/users/${user.id}`}
+        className="min-w-0 rounded-sm outline-none hover:underline focus-visible:ring-3"
+      >
         <p className="truncate text-sm font-medium">{name || "—"}</p>
         <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-      </div>
+      </Link>
     </div>
   )
 }

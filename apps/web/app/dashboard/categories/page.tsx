@@ -5,8 +5,9 @@
 // so the tree renders to any depth with continuous guide lines per level.
 // Searching switches to the flat filtered list (cursor-paginated).
 import { useMemo, useState } from "react"
+import Link from "next/link"
 import { useQuery } from "urql"
-import { ChevronDown, ChevronRight, FolderOpen, List, Search, TreeDeciduous } from "lucide-react"
+import { ChevronDown, FolderOpen, List, Search, TreeDeciduous } from "lucide-react"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -24,7 +25,8 @@ import {
 import { ErrorBanner } from "@/components/dashboard/error-banner"
 import { formatDateTime } from "@/lib/format"
 
-type DetailChild = Extract<CategoryDetailQuery["node"], { __typename: "CategoryType" }>["children"][number]
+type DetailChild =
+  CategoryDetailQuery["categories"]["edges"][number]["node"]["children"][number]
 
 // Minimal structural shape for preloaded children at any depth (root children
 // carry description + nested children; grandchildren are shallower).
@@ -85,42 +87,23 @@ function PublicBadge({ isPublic }: { isPublic: boolean }) {
 function NameCell({
   node,
   depth,
-  expanded,
-  hasChildren,
-  onToggle,
 }: {
-  node: { name: string; slug: string }
+  node: { id: string; name: string; slug: string }
   depth: number
-  expanded?: boolean
-  hasChildren?: boolean
-  onToggle?: () => void
 }) {
   return (
     <div
       className="flex min-w-0 items-center gap-1.5"
       style={{ paddingInlineStart: `${depth * 1.25}rem` }}
     >
-      {hasChildren ? (
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={expanded}
-          aria-label={expanded ? `Collapse ${node.name}` : `Expand ${node.name}`}
-          className="text-muted-foreground hover:text-foreground hover:bg-accent -m-1 flex size-5 shrink-0 items-center justify-center rounded-sm outline-none focus-visible:ring-3"
-        >
-          {expanded ? (
-            <ChevronDown className="size-3.5" aria-hidden />
-          ) : (
-            <ChevronRight className="size-3.5" aria-hidden />
-          )}
-        </button>
-      ) : (
-        <span className="size-5 shrink-0" aria-hidden />
-      )}
-      <div className="min-w-0">
+      <span className="size-5 shrink-0" aria-hidden />
+      <Link
+        href={`/dashboard/categories/${node.id}`}
+        className="min-w-0 rounded-sm outline-none hover:underline focus-visible:ring-3"
+      >
         <p className="truncate text-sm font-medium">{node.name}</p>
         <p className="text-muted-foreground truncate font-mono text-xs">{node.slug}</p>
-      </div>
+      </Link>
     </div>
   )
 }
@@ -154,9 +137,9 @@ function TreeNode({ node, depth }: { node: TreeNodeData; depth: number }) {
     variables: { id: node.id },
     pause: !expanded || preloaded !== undefined || !hasChildren,
   })
-  const detailNode =
-    detailData?.node?.__typename === "CategoryType" ? detailData.node : null
-  const children = preloaded ?? (detailNode ? normalizeDetail(detailNode.children) : [])
+  const detailNode = detailData?.categories.edges[0]?.node ?? null
+  const children =
+    preloaded ?? (detailNode ? normalizeDetail(detailNode.children) : [])
 
   return (
     <>
@@ -189,10 +172,13 @@ function TreeNode({ node, depth }: { node: TreeNodeData; depth: number }) {
             ) : (
               <span className="size-5 shrink-0" aria-hidden />
             )}
-            <div className="min-w-0">
+            <Link
+              href={`/dashboard/categories/${node.id}`}
+              className="min-w-0 rounded-sm outline-none hover:underline focus-visible:ring-3"
+            >
               <p className="truncate text-sm font-medium">{node.name}</p>
               <p className="text-muted-foreground truncate font-mono text-xs">{node.slug}</p>
-            </div>
+            </Link>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">

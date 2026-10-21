@@ -77,30 +77,65 @@ query CategoriesList(
   }
 }
 
-# جزئیات دسته‌بندی با درخت اجداد و فرزندان — از طریق node(id)
+# فرزندان مستقیم یک دسته — node(id) در بک‌اند resolve نمی‌شود، پس با فیلتر id
 query CategoryDetail($id: ID!) {
-  node(id: $id) {
-    __typename
-    ... on CategoryType {
-      id
-      name
-      slug
-      description
-      isPublic
-      metaTitle
-      metaDescription
-      updatedAt
-      ancestors {
+  categories(first: 1, filters: { id: { exact: $id } }) {
+    edges {
+      node {
         id
-        name
-        slug
+        children {
+          id
+          name
+          slug
+          isPublic
+          numchild
+        }
       }
-      children {
+    }
+  }
+}
+
+# صفحهٔ جزئیات دسته — مسیر اجداد، زیرشاخه‌ها، محصولات و سئو
+query CategoryPage($id: ID!) {
+  categories(first: 1, filters: { id: { exact: $id } }) {
+    totalCount
+    edges {
+      node {
         id
         name
         slug
+        description
         isPublic
-        numchild
+        metaTitle
+        metaDescription
+        metadata
+        updatedAt
+        ancestors {
+          id
+          name
+          slug
+        }
+        children {
+          id
+          name
+          slug
+          isPublic
+          numchild
+        }
+        products {
+          id
+          title
+          slug
+          isPublic
+          createdAt
+        }
+        translations {
+          languageCode
+          name
+          description
+          metaTitle
+          metaDescription
+        }
       }
     }
   }
