@@ -10,10 +10,13 @@ export function ScrollEdgeDrag() {
   useEffect(() => {
     const strip = stripRef.current
     const content = document.getElementById("dashboard-content")
-    if (!strip || !content) return
+    const viewport = content?.closest(
+      '[data-slot="scroll-area-viewport"]'
+    )
+    if (!strip || !viewport) return
 
     const edge = strip
-    const scroller = content
+    const scroller = viewport
     let pointerId: number | null = null
     let startY = 0
     let startScrollTop = 0

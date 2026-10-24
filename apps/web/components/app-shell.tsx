@@ -1,3 +1,4 @@
+import { ScrollArea } from "@workspace/ui/components/scroll-area"
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar"
 import { AppHeader } from "@/components/app-header"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -28,12 +29,18 @@ export function AppShell({
 					    covering the inset panel's rounded corners */}
           <SidebarInset className="overflow-hidden md:peer-data-[variant=inset]:ml-0">
             <AppHeader me={me} />
-            <div
-              id="dashboard-content"
-              className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 md:p-6"
+            <ScrollArea
+              className="min-h-0 flex-1"
+              scrollBarClassName="group/scrollbar"
+              scrollBarThumbClassName="mx-auto w-1.5 flex-none rounded-full bg-foreground/25 transition-colors hover:bg-foreground/50 group-hover/scrollbar:bg-foreground/40"
             >
-              {children}
-            </div>
+              <div
+                id="dashboard-content"
+                className="flex flex-col gap-4 p-4 md:p-6"
+              >
+                {children}
+              </div>
+            </ScrollArea>
           </SidebarInset>
         </SidebarProvider>
       </OnlinePresenceProvider>
