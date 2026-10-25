@@ -149,7 +149,7 @@ export function DataTable<T>({
               value={searchValue ?? ""}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder ?? "Search…"}
-              className="h-9 w-full max-w-xs rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="h-9 w-full max-w-xs rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring"
             />
           )}
           {toolbar}
@@ -197,7 +197,7 @@ export function DataTable<T>({
                         <button
                           type="button"
                           onClick={header.column.getToggleSortingHandler()}
-                          className="flex w-full items-center gap-1 outline-none hover:text-foreground"
+                          className="flex w-full items-center gap-1 rounded-sm outline-none hover:text-foreground focus-visible:ring-3"
                         >
                           {flexRender(
                             header.column.columnDef.header,

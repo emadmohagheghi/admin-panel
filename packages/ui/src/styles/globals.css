@@ -67,12 +67,15 @@
     --muted-foreground: oklch(0.556 0 0);
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --success: oklch(0.596 0.145 163.2);
-    --warning: oklch(0.666 0.179 58.3);
+    /* Status hues tuned for WCAG AA: each passes 4.5:1 as text on its own
+       /10 tint in light mode (badge text, error banners). Keep --ring light
+       dark enough for a 3:1 full-strength focus ring. */
+    --destructive: oklch(0.52 0.21 27.325);
+    --success: oklch(0.5 0.13 163.2);
+    --warning: oklch(0.52 0.12 58.3);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --ring: oklch(0.5 0 0);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -127,7 +130,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
     }
   html {
     -webkit-font-smoothing: antialiased;

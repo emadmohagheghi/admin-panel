@@ -49,7 +49,7 @@ export default function ProfilePage() {
       )}
 
       {fetching && !me && (
-        <div className="bg-muted h-48 animate-pulse rounded-xl" aria-hidden />
+        <div className="bg-muted h-48 motion-safe:animate-pulse rounded-xl" aria-hidden />
       )}
 
       {me && (

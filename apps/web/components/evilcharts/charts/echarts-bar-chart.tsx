@@ -2253,7 +2253,7 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
             transition={{ duration: 0.25, ease: "easeOut" }}
             className="text-primary bg-background flex items-center justify-center gap-2 rounded-md border px-2 py-0.5 text-sm"
           >
-            <div className="border-border border-t-primary h-3 w-3 animate-spin rounded-full border" />
+            <div className="border-border border-t-primary h-3 w-3 motion-safe:animate-spin rounded-full border" />
             <span>Loading</span>
           </motion.div>
         </div>

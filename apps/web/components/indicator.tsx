@@ -18,7 +18,7 @@ const statusIndicatorVariants = cva(
 				sky: "text-sky-500",
 			},
 			pulse: {
-				true: "[&_[data-slot=indicator-ping]]:animate-ping",
+				true: "[&_[data-slot=indicator-ping]]:motion-safe:animate-ping",
 				false: "[&_[data-slot=indicator-ping]]:hidden",
 			},
 		},
