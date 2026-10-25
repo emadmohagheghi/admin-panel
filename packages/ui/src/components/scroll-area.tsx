@@ -9,10 +9,15 @@ function ScrollArea({
   children,
   scrollBarClassName,
   scrollBarThumbClassName,
+  contentClassName,
   ...props
 }: ScrollAreaPrimitive.Root.Props & {
   scrollBarClassName?: string
   scrollBarThumbClassName?: string
+  /** Pass `min-w-0!` for page-level scrollers: Base UI defaults Content to
+   *  `min-width: fit-content`, which forces wide tables to widen the whole
+   *  page instead of scrolling inside their own container. */
+  contentClassName?: string
 }) {
   return (
     <ScrollAreaPrimitive.Root
@@ -22,9 +27,11 @@ function ScrollArea({
     >
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-1"
       >
-        <ScrollAreaPrimitive.Content>{children}</ScrollAreaPrimitive.Content>
+        <ScrollAreaPrimitive.Content className={contentClassName}>
+          {children}
+        </ScrollAreaPrimitive.Content>
       </ScrollAreaPrimitive.Viewport>
       <ScrollBar
         className={scrollBarClassName}

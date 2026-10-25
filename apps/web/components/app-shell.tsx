@@ -31,6 +31,7 @@ export function AppShell({
             <AppHeader me={me} />
             <ScrollArea
               className="min-h-0 flex-1"
+              contentClassName="min-w-0!"
               scrollBarClassName="group/scrollbar"
               scrollBarThumbClassName="mx-auto w-1.5 flex-none rounded-full bg-foreground/25 transition-colors hover:bg-foreground/50 group-hover/scrollbar:bg-foreground/40"
             >
