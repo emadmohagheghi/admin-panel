@@ -176,6 +176,9 @@ export default function UsersPage() {
 
   function clearFilters() {
     setFilters(NO_FILTERS)
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    setSearchInput("")
+    setSearch("")
     resetInfinite()
     reset()
   }
@@ -413,9 +416,11 @@ export default function UsersPage() {
         sorting={sorting}
         onSortingChange={handleSortingChange}
         emptyMessage={
-          hasActiveFilters || search
-            ? "No users match the current filters"
-            : "No users yet"
+          search
+            ? `No results for "${search}"`
+            : hasActiveFilters
+              ? "No users match the active filters"
+              : "No users yet"
         }
         pagination={
           viewMode === "scroll"
@@ -468,14 +473,14 @@ export default function UsersPage() {
                 </Button>
               </div>
             </div>
-            {hasActiveFilters ? (
+            {hasActiveFilters || search ? (
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
                 onClick={clearFilters}
               >
-                Clear
+                Clear filters
               </Button>
             ) : null}
           </div>
@@ -490,7 +495,7 @@ export default function UsersPage() {
         >
           {loadingMore ? (
             <>
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              <Loader2 className="size-3.5 motion-safe:animate-spin" aria-hidden />
               <span>Loading more…</span>
             </>
           ) : infiniteHasNextPage ? (

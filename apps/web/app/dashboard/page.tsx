@@ -19,19 +19,9 @@ import { StatusIndicator } from "@/components/indicator"
 import { useOnlinePresence } from "@/components/online-presence"
 
 const STATS = [
-  {
-    key: "products",
-    label: "Products",
-    icon: Package,
-    href: "/dashboard/products",
-  },
-  {
-    key: "variants",
-    label: "Variants",
-    icon: Layers,
-    href: "/dashboard/variants",
-  },
-  { key: "users", label: "Users", icon: Users, href: "/dashboard/users" },
+  { key: "products", label: "Products", icon: Package },
+  { key: "variants", label: "Variants", icon: Layers },
+  { key: "users", label: "Users", icon: Users },
 ] as const
 
 type StatsData =
@@ -79,10 +69,7 @@ export default function DashboardOverviewPage() {
           const count = getStatCount(data, stat.key)
           const showSkeleton = fetching && count === null
           return (
-            <Card
-              key={stat.key}
-              className="transition-colors hover:border-foreground/15"
-            >
+            <Card key={stat.key}>
               <CardContent className="flex flex-row items-center gap-4">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                   <stat.icon className="size-5" aria-hidden />
@@ -91,7 +78,7 @@ export default function DashboardOverviewPage() {
                   <p className="text-xs text-muted-foreground">{stat.label}</p>
                   {showSkeleton ? (
                     <div
-                      className="h-6 w-12 animate-pulse rounded bg-muted"
+                      className="h-6 w-12 motion-safe:animate-pulse rounded bg-muted"
                       aria-hidden
                     />
                   ) : (
@@ -105,7 +92,7 @@ export default function DashboardOverviewPage() {
           )
         })}
 
-        <Card className="transition-colors hover:border-foreground/15">
+        <Card>
           <CardContent className="flex flex-row items-center gap-4">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
               <Activity className="size-5" aria-hidden />
@@ -122,7 +109,7 @@ export default function DashboardOverviewPage() {
               </p>
               {online.fetching && online.count === null ? (
                 <div
-                  className="h-6 w-12 animate-pulse rounded bg-muted"
+                  className="h-6 w-12 motion-safe:animate-pulse rounded bg-muted"
                   aria-hidden
                 />
               ) : (

@@ -49,12 +49,19 @@ export default function LoginPage() {
     try {
       const result = await login(values.email, values.password)
       if (!result.ok) {
-        setServerError(result.message || "Sign in failed")
+        setServerError(
+          result.message ||
+            "Unable to sign in. Check your email and password, then try again."
+        )
         return
       }
       window.location.assign("/dashboard")
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Network error while signing in")
+      setServerError(
+        err instanceof Error
+          ? err.message
+          : "Unable to sign in. Check your connection and try again."
+      )
     }
   }
 
@@ -127,7 +134,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                className="text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring"
               >
                 {/* Crossfade per the icon-swap rule: outgoing icon fades/blurs
                     out while the incoming one scales in */}
@@ -176,7 +183,7 @@ export default function LoginPage() {
               <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
-                    <Loader2 aria-hidden data-icon="inline-start" className="animate-spin" />
+                    <Loader2 aria-hidden data-icon="inline-start" className="motion-safe:animate-spin" />
                     Signing in…
                   </>
                 ) : (

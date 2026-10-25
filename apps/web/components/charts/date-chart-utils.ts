@@ -75,11 +75,23 @@ export function colorForSeriesKey(key: string, index: number): ThemePair {
   return semanticColor(key) ?? CATEGORY_PALETTE[index % CATEGORY_PALETTE.length] ?? EVIL_BLUE
 }
 
+/** Humanized series label. The backend sends raw enum names as labels
+ *  ("BEING_PROCESSED"), so all-caps identifiers are title-cased, while
+ *  real labels like "Home & Kitchen" pass through untouched. */
+function seriesLabel(key: string, label: string | null | undefined): string {
+  const raw = label || key
+  if (!/^[A-Z0-9_]+$/.test(raw)) return raw
+  return raw
+    .toLowerCase()
+    .replace(/[\s_-]+/g, " ")
+    .replace(/\b\p{L}/gu, (c) => c.toUpperCase())
+}
+
 export function toDateSeries(chart: DateChartData): DateSeries[] {
   return (chart.series ?? []).map((s, i) => ({
     id: `s${i}`,
     key: s.key,
-    label: s.label || s.key,
+    label: seriesLabel(s.key, s.label),
     color: colorForSeriesKey(s.key, i),
   }))
 }
